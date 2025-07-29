@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Box from './Box.vue'
+import Bus from './Bus.vue'
 
 const components = [
 {
@@ -7,7 +8,7 @@ const components = [
   title: 'Program Counter (PC)',
   value: '0000',
   row: 2,        // Start at row 2
-  col: 2,        // Start at col 4
+  col: 3,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
   colSpan: 2     // Covers cols 4 and 5
 },
@@ -16,7 +17,7 @@ const components = [
   title: 'Memory Address Register (MAR)',
   value: '0000',
   row: 5,        // Start at row 2
-  col: 2,        // Start at col 4
+  col: 3,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
   colSpan: 2     // Covers cols 4 and 5
 },
@@ -25,7 +26,7 @@ const components = [
   title: '16x8 PROM',
   value: '0000',
   row: 8,        // Start at row 2
-  col: 2,        // Start at col 4
+  col: 3,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
   colSpan: 2     // Covers cols 4 and 5
 },
@@ -34,7 +35,7 @@ const components = [
   title: 'Instruction Register (IR)',
   value: '0000',
   row: 11,        // Start at row 2
-  col: 2,        // Start at col 4
+  col: 3,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
   colSpan: 2     // Covers cols 4 and 5
 },
@@ -44,7 +45,7 @@ const components = [
   title: 'Control Unit CON',
   value: '0000',
   row: 14,        // Start at row 2
-  col: 2,        // Start at col 4
+  col: 3,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
   colSpan: 2     // Covers cols 4 and 5
 },
@@ -100,6 +101,19 @@ const components = [
 
 <template>
 <div class="grid grid-cols-16 gap-px w-full h-full" style="grid-template-columns: repeat(16, 45px); grid-template-rows: repeat(16, 48px);">
+
+
+ <div
+      :style="{
+        gridColumnStart: 7,
+        gridColumnEnd: 'span 3',
+        gridRowStart: 2,
+        gridRowEnd: 15
+      }"
+    >
+      <Bus />
+    </div>
+
   <Box
     v-for="c in components"
     :key="c.id"

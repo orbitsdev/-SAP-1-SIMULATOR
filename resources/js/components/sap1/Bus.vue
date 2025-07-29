@@ -1,15 +1,11 @@
-<script setup>
-defineProps({
-    width: Number,
-    height: Number
-})
+
+
+<script setup lang="ts">
+defineProps<{ style?: Record<string, string> }>()
 </script>
+
+
+<!-- Bus.vue -->
 <template>
-   <div
-    class="bg-gray-500 w-full h-1 my-4"
-    :style="{ width: width + 'px', height: height + 'px' }"
-  >
-
-  </div>
-</template>
-
+    <div class="w-full h-full bg-gray-500 opacity-60 rounded"></div>
+  </template>
