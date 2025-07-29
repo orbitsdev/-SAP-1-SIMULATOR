@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import Box from './Box.vue'
 import Bus from './Bus.vue'
+import Arrow from './Arrow.vue';
+
+const arrows = [
+  { from: { row: 2, col: 4 }, to: { row: 2, col: 11 }, label: '8-bit' },
+  { from: { row: 5, col: 4 }, to: { row: 5, col: 11 }, label: '8-bit' },
+  // etc...
+]
+
 
 const components = [
 {
@@ -111,8 +119,17 @@ const components = [
         gridRowEnd: 15
       }"
     >
-      <Bus />
+      <Bus title="8"/>
     </div>
+
+    <Arrow
+  v-for="(arrow, index) in arrows"
+  :key="index"
+  :from="arrow.from"
+  :to="arrow.to"
+  :label="arrow.label"
+/>
+
 
   <Box
     v-for="c in components"
