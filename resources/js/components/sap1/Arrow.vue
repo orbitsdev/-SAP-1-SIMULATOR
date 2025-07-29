@@ -87,17 +87,18 @@ const finalDirection = props.direction ?? (
       }"
     />
 
-    <!-- Label -->
-    <div
-      v-if="props.label"
-      class="absolute text-[10px] text-white bg-black px-1 rounded"
-      :style="{
-        top: isVertical ? '50%' : `-${headSize + 8}px`,
-        left: isHorizontal ? '50%' : '12px',
-        transform: 'translate(-50%, -50%)'
-      }"
-    >
-      {{ props.label }}
-    </div>
+  <!-- Label -->
+<div
+  v-if="props.label"
+  class="absolute text-[10px] text-white  px-1 rounded"
+  :style="{
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)'
+  }"
+>
+  {{ props.label }}
+</div>
+
   </div>
 </template>

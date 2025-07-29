@@ -10,7 +10,7 @@ const arrows = [
     id:'pc',
     from: { row: 2, col: 5 },
     to: { row: 2, col: 7 },
-    label: '8-bit',
+    label: '4',
     offsetX:5,
     offsetY: 30,       // shift vertically (default: center)
     thickness: 24,     // make body thicker
@@ -22,7 +22,7 @@ const arrows = [
   id: 'mar',
   from: { row: 5, col: 7 },  // starting at the right (near bus)
   to: { row: 5, col: 5 },    // pointing back to MAR
-  label: '8-bit',
+  label: '4',
   offsetX:5,
   offsetY: 30,
   thickness: 24,
@@ -35,32 +35,43 @@ const arrows = [
     id:'prom',
     from: { row: 8, col: 5 },
     to: { row: 8, col: 7 },
-    label: '8-bit',
+    label: '8',
     offsetX:5,
     offsetY: 30,       // slightly lower than center
     thickness: 24,
     headSize: 34
   },
-
-  //arrpw fpr instruction registe
-
+  //insturction register
   {
-    id:'ir',
-    from: { row: 11, col: 5 },
-    to: { row: 11, col: 7 },
-    label: '8-bit',
-    offsetX:5,
-    offsetY: 30,       // slightly lower than center
-    thickness: 24,
-    headSize: 34
-  },
+  id: 'ir-in',
+  from: { row: 11, col: 5 },
+  to: { row: 11, col: 7 },
+  label: '8',
+  offsetX: 5,     // nudge left
+  offsetY: 80,     // lower arrow
+  thickness: 24,
+  headSize: 34,
+  direction: 'left'
+},
+{
+  id: 'ir-out',
+  from: { row: 11, col: 7 },
+  to: { row: 11, col: 5 },
+  label: '8',
+  offsetX:5,      // nudge right
+  offsetY: 20,     // upper arrow
+  thickness: 24,
+  headSize: 34,
+  direction: 'right'
+}
+,
 
 // A Register → (from Bus to A Register)
 {
   id: 'ar-in',
   from: { row: 2, col: 10 },
   to: { row: 2, col: 12 },
-  label: '8-bit',
+  label: '8',
   offsetY:10,
   offsetX:10,
 
@@ -74,8 +85,8 @@ const arrows = [
   id: 'ar-out',
   from: { row: 2, col: 12 },
   to: { row: 2, col: 10 },
-  label: '',
-  offsetY: 60, // slight difference so it doesn't overlap perfectly
+  label: '8',
+  offsetY: 70, // slight difference so it doesn't overlap perfectly
   offsetX:10,
   thickness: 24,
   headSize: 34,
@@ -88,11 +99,11 @@ const arrows = [
     id:'alu',
   from: { row: 5, col: 12 },
   to: { row: 5, col: 10 },
-  label: '',
+  label: '8',
   offsetY: 30,
   offsetX:10,
-  thickness: 20,
-  headSize: 30,
+  thickness: 24,
+  headSize: 34,
   direction: 'left'
 },
 
@@ -101,11 +112,11 @@ const arrows = [
     id:'br',
   from: { row: 8, col: 10 },
   to: { row: 8, col: 12 },
-  label: '',
+  label: '8',
   offsetY: 30,
   offsetX:10,
-  thickness: 20,
-  headSize: 30,
+  thickness: 24,
+  headSize: 34,
   direction: 'right'
 },
 //arrow for output
@@ -113,11 +124,11 @@ const arrows = [
     id:'or',
   from: { row: 11, col: 10 },
   to: { row: 11, col: 12 },
-  label: '',
+  label: '8',
   offsetY: 30,
   offsetX:10,
-  thickness: 20,
-  headSize: 30,
+  thickness: 24,
+  headSize: 34,
   direction: 'right'
 },
 
