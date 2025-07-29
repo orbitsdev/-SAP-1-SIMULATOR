@@ -7,7 +7,7 @@ const arrows = [
 
 //arrow for pc
   {
-    id:'pc',
+    id:'program-counter-in',
     from: { row: 2, col: 5 },
     to: { row: 2, col: 7 },
     label: '4',
@@ -19,7 +19,7 @@ const arrows = [
 
   //affor for mar
   {
-  id: 'mar',
+  id: 'memory-address-register-in',
   from: { row: 5, col: 7 },  // starting at the right (near bus)
   to: { row: 5, col: 5 },    // pointing back to MAR
   label: '4',
@@ -29,10 +29,21 @@ const arrows = [
   headSize: 34,
   direction: 'left'
 },
-
+{
+  id: 'memory-address-register-to-prom',
+  from: { row: 6, col: 5 },   // bottom of MAR (row 5 + rowSpan 2 → row 6)
+  to: { row: 8, col: 5 },     // top of PROM
+  label: '4',
+  offsetX: -50,
+  offsetY: 0,
+  thickness: 20,
+  headSize: 28,
+  direction: 'down'
+}
+,
   //affprw for prom
   {
-    id:'prom',
+    id:'prom-in',
     from: { row: 8, col: 5 },
     to: { row: 8, col: 7 },
     label: '8',
@@ -43,7 +54,7 @@ const arrows = [
   },
   //insturction register
   {
-  id: 'ir-in',
+  id: 'instruction-register-in',
   from: { row: 11, col: 5 },
   to: { row: 11, col: 7 },
   label: '8',
@@ -54,7 +65,7 @@ const arrows = [
   direction: 'left'
 },
 {
-  id: 'ir-out',
+  id: 'instruction-register-out',
   from: { row: 11, col: 7 },
   to: { row: 11, col: 5 },
   label: '8',
@@ -68,7 +79,7 @@ const arrows = [
 
 // A Register → (from Bus to A Register)
 {
-  id: 'ar-in',
+  id: 'register-a-in',
   from: { row: 2, col: 10 },
   to: { row: 2, col: 12 },
   label: '8',
@@ -82,7 +93,7 @@ const arrows = [
 
 // A Register ← (from A Register to Bus)
 {
-  id: 'ar-out',
+  id: 'register-a-out',
   from: { row: 2, col: 12 },
   to: { row: 2, col: 10 },
   label: '8',
@@ -93,11 +104,22 @@ const arrows = [
   direction: 'left'
 },
 {
-  id: 'ir-to-con',
+  id: 'register-a-to-alu',
+  from: { row: 3, col: 13 },
+  to: { row: 5, col: 13 },
+  label: '8',
+  offsetX: 0,  // ✅ move it right to avoid overlap
+  offsetY: 8,
+  thickness: 20,  // optional: reduce slightly if needed
+  headSize: 28,
+  direction: 'down'
+},
+{
+  id: 'instruction-register-to-control-unit',
   from: { row: 13, col: 5 },  // below IR
   to: { row: 14, col: 5 },    // pointing to Control Unit
   label: '4',
-  offsetX: -40,
+  offsetX: -50,
   offsetY: 0,
   thickness: 16,
   headSize: 28,
@@ -106,7 +128,7 @@ const arrows = [
 
 // ALU ←
 {
-    id:'alu',
+    id:'arithmetic-logic-unit-in',
   from: { row: 5, col: 12 },
   to: { row: 5, col: 10 },
   label: '8',
@@ -119,7 +141,7 @@ const arrows = [
 
 // B Register ←
 {
-    id:'br',
+    id:'register-b-in',
   from: { row: 8, col: 10 },
   to: { row: 8, col: 12 },
   label: '8',
@@ -131,7 +153,7 @@ const arrows = [
 },
 //arrow for output
 {
-    id:'or',
+    id:'output-register-in',
   from: { row: 11, col: 10 },
   to: { row: 11, col: 12 },
   label: '8',
@@ -142,6 +164,18 @@ const arrows = [
   direction: 'right'
 },
 
+{
+  id: 'output-register-to-binary-display',
+  from: { row: 13, col: 13 },   // below Output Register
+  to: { row: 14, col: 13 },     // top of Binary Display
+  label: '8',
+  offsetX: 5,                   // slight nudge to center
+  offsetY: 0,
+  thickness: 20,
+  headSize: 30,
+  direction: 'down'
+}
+
 
 
 
@@ -151,7 +185,7 @@ const arrows = [
 
 const components = [
 {
-    id:'pc',
+    id:'program-counter',
   title: 'Program Counter (PC)',
   value: '0000',
   row: 2,        // Start at row 2
@@ -160,7 +194,7 @@ const components = [
   colSpan: 2     // Covers cols 4 and 5
 },
 {
-    id:'mar',
+    id:'memory-address-register',
   title: 'Memory Address Register (MAR)',
   value: '0000',
   row: 5,        // Start at row 2
@@ -178,7 +212,7 @@ const components = [
   colSpan: 2     // Covers cols 4 and 5
 },
 {
-    id:'ir',
+    id:'instruction-register',
   title: 'Instruction Register (IR)',
   value: '0000',
   row: 11,        // Start at row 2
@@ -188,7 +222,7 @@ const components = [
 },
 
 {
-    id:'con',
+    id:'control-unit',
   title: 'Control Unit CON',
   value: '0000',
   row: 14,        // Start at row 2
@@ -198,7 +232,7 @@ const components = [
 },
 
 {
-    id:'ar',
+    id:'register-a',
   title: 'A Register',
   value: '0000',
   row: 2,        // Start at row 2
@@ -207,7 +241,7 @@ const components = [
   colSpan: 2     // Covers cols 4 and 5
 },
 {
-    id:'alu',
+    id:'arithmetic-logic-unit',
   title: 'Arithmetic Logic Unit (ALU)',
   value: '0000',
   row: 5,        // Start at row 2
@@ -215,8 +249,9 @@ const components = [
   rowSpan: 2,    // Covers rows 2 and 3
   colSpan: 2     // Covers cols 4 and 5
 },
+
 {
-    id:'br',
+    id:'register-b',
   title: 'B Register',
   value: '0000',
   row: 8,        // Start at row 2
@@ -225,7 +260,7 @@ const components = [
   colSpan: 2     // Covers cols 4 and 5
 },
 {
-    id:'or',
+    id:'output-register',
   title: 'Output Register',
   value: '0000',
   row: 11,        // Start at row 2
@@ -234,7 +269,7 @@ const components = [
   colSpan: 2     // Covers cols 4 and 5
 },
 {
-    id:'bd',
+    id:'binary-display',
   title: 'Binary Display',
   value: '0000',
   row: 14,        // Start at row 2
