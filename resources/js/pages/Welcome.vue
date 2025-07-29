@@ -10,7 +10,7 @@ import SimulationSpace from '../components/sap1/SimulationSpace.vue';
 <template>
  <main class="w-full flex justify-center items-start bg-white p-10 overflow-auto">
   <div class="relative" style="width: 720px; height: 768px;">
-    <GridGuideLine class="absolute inset-0 z-0 pointer-events-none bg-yellow-200/10" />
+    <GridGuideLine class="absolute inset-0 z-0 pointer-events-none bg-yellow-200/10 opacity-60" />
     <SimulationSpace class="absolute inset-0 z-10" />
   </div>
 </main>
