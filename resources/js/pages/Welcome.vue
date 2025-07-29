@@ -8,7 +8,7 @@ import GridGuideLine from '../components/sap1/GridGuideLine.vue';
 
 <template>
 <!-- Centered grid layout -->
-<main class="max-w-7xl mx-auto flex justify-center items-center min-h-screen">
+<main class="max-w-7xl mx-auto p-16 min-h-screen">
     <GridGuideLine/>
 
 </main>
