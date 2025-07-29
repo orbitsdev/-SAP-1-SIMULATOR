@@ -92,7 +92,17 @@ const arrows = [
   headSize: 34,
   direction: 'left'
 },
-
+{
+  id: 'ir-to-con',
+  from: { row: 13, col: 5 },  // below IR
+  to: { row: 14, col: 5 },    // pointing to Control Unit
+  label: '4',
+  offsetX: -40,
+  offsetY: 0,
+  thickness: 16,
+  headSize: 28,
+  direction: 'down'
+},
 
 // ALU ←
 {
