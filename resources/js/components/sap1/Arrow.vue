@@ -1,57 +1,103 @@
-<!-- Arrow.vue -->
 <script setup lang="ts">
-interface Props {
+const props = defineProps<{
   from: { row: number; col: number }
   to: { row: number; col: number }
   label?: string
-  cellWidth?: number
-  cellHeight?: number
-}
+  offsetX?: number
+  offsetY?: number
+  thickness?: number
+  headSize?: number
+  direction?: 'left' | 'right' | 'up' | 'down'
+}>()
 
-const props = withDefaults(defineProps<Props>(), {
-  label: '',
-  cellWidth: 45,
-  cellHeight: 48,
-})
+const thickness = props.thickness ?? 10
+const headSize = props.headSize ?? 12
+const offsetX = props.offsetX ?? 0
+const offsetY = props.offsetY ?? 0
 
-// Calculate exact pixel positions
-const startX = (props.from.col - 0.5) * props.cellWidth
-const startY = (props.from.row - 0.5) * props.cellHeight
-const endX = (props.to.col - 0.5) * props.cellWidth
-const endY = (props.to.row - 0.5) * props.cellHeight
+// Direction flags
+const isHorizontal = props.from.row === props.to.row
+const isVertical = props.from.col === props.to.col
+
+// Length of the arrow
+const width = Math.abs(props.from.col - props.to.col) * 45
+const height = Math.abs(props.from.row - props.to.row) * 48
+
+// Starting position (top-left corner of bounding box)
+const top = (Math.min(props.from.row, props.to.row) - 1) * 48 + offsetY
+const left = (Math.min(props.from.col, props.to.col) - 1) * 45 + offsetX
+
+// Determine arrow direction
+const finalDirection = props.direction ?? (
+  props.from.col < props.to.col ? 'right' :
+  props.from.col > props.to.col ? 'left' :
+  props.from.row < props.to.row ? 'down' :
+  'up'
+)
 </script>
 
 <template>
-  <svg
-    class="absolute z-20 pointer-events-none"
-    :style="{ left: 0, top: 0, width: '100%', height: '100%' }"
+  <div
+    class="absolute z-20"
+    :style="{
+      top: `${top}px`,
+      left: `${left + (finalDirection === 'left' ? headSize : 0)}px`,
+      width: isHorizontal ? `${width - headSize}px` : `${thickness}px`,
+      height: isVertical ? `${height - headSize}px` : `${thickness}px`,
+      backgroundColor: '#000',
+      borderRadius: '2px',
+      overflow: 'visible'
+    }"
   >
-
-    <defs>
-      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-        <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
-      </marker>
-    </defs>
-    <line
-      :x1="startX"
-      :y1="startY"
-      :x2="endX"
-      :y2="endY"
-      stroke="#333"
-      stroke-width="2"
-      marker-end="url(#arrowhead)"
+    <!-- Arrowhead -->
+    <div
+      class="absolute"
+      :style="{
+        top:
+          finalDirection === 'down' ? `${height - headSize / 2}px` :
+          finalDirection === 'up' ? `-${headSize / 2}px` :
+          '50%',
+        left:
+          finalDirection === 'right' ? `${width - headSize}px` :
+          finalDirection === 'left' ? `-${headSize}px` :
+          '50%',
+        transform:
+          finalDirection === 'left' || finalDirection === 'right'
+            ? 'translateY(-50%)'
+            : 'translateX(-50%)',
+        width: 0,
+        height: 0,
+        borderStyle: 'solid',
+        borderWidth:
+          finalDirection === 'right'
+            ? `${headSize / 2}px 0 ${headSize / 2}px ${headSize}px`
+            : finalDirection === 'left'
+            ? `${headSize / 2}px ${headSize}px ${headSize / 2}px 0`
+            : finalDirection === 'down'
+            ? `${headSize}px ${headSize / 2}px 0 ${headSize / 2}px`
+            : `${headSize}px ${headSize / 2}px 0 ${headSize / 2}px`,
+        borderColor:
+          finalDirection === 'right'
+            ? 'transparent transparent transparent black'
+            : finalDirection === 'left'
+            ? 'transparent black transparent transparent'
+            : finalDirection === 'down'
+            ? 'black transparent transparent transparent'
+            : 'transparent transparent black transparent'
+      }"
     />
-    <!-- Optional label -->
-    <text
-      v-if="label"
-      :x="(startX + endX) / 2"
-      :y="(startY + endY) / 2"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      font-size="12"
-      fill="#333"
+
+    <!-- Label -->
+    <div
+      v-if="props.label"
+      class="absolute text-[10px] text-white bg-black px-1 rounded"
+      :style="{
+        top: isVertical ? '50%' : `-${headSize + 8}px`,
+        left: isHorizontal ? '50%' : '12px',
+        transform: 'translate(-50%, -50%)'
+      }"
     >
-      {{ label }}
-    </text>
-  </svg>
+      {{ props.label }}
+    </div>
+  </div>
 </template>

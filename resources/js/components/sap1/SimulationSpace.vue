@@ -4,10 +4,128 @@ import Bus from './Bus.vue'
 import Arrow from './Arrow.vue';
 
 const arrows = [
-  { from: { row: 2, col: 4 }, to: { row: 2, col: 11 }, label: '8-bit' },
-  { from: { row: 5, col: 4 }, to: { row: 5, col: 11 }, label: '8-bit' },
-  // etc...
+
+//arrow for pc
+  {
+    id:'pc',
+    from: { row: 2, col: 5 },
+    to: { row: 2, col: 7 },
+    label: '8-bit',
+    offsetX:5,
+    offsetY: 30,       // shift vertically (default: center)
+    thickness: 24,     // make body thicker
+    headSize: 34       // arrowhead size
+  },
+
+  //affor for mar
+  {
+  id: 'mar',
+  from: { row: 5, col: 7 },  // starting at the right (near bus)
+  to: { row: 5, col: 5 },    // pointing back to MAR
+  label: '8-bit',
+  offsetX:5,
+  offsetY: 30,
+  thickness: 24,
+  headSize: 34,
+  direction: 'left'
+},
+
+  //affprw for prom
+  {
+    id:'prom',
+    from: { row: 8, col: 5 },
+    to: { row: 8, col: 7 },
+    label: '8-bit',
+    offsetX:5,
+    offsetY: 30,       // slightly lower than center
+    thickness: 24,
+    headSize: 34
+  },
+
+  //arrpw fpr instruction registe
+
+  {
+    id:'ir',
+    from: { row: 11, col: 5 },
+    to: { row: 11, col: 7 },
+    label: '8-bit',
+    offsetX:5,
+    offsetY: 30,       // slightly lower than center
+    thickness: 24,
+    headSize: 34
+  },
+
+// A Register → (from Bus to A Register)
+{
+  id: 'ar-in',
+  from: { row: 2, col: 10 },
+  to: { row: 2, col: 12 },
+  label: '8-bit',
+  offsetY:10,
+  offsetX:10,
+
+  thickness: 24,
+  headSize: 34,
+  direction: 'right'
+},
+
+// A Register ← (from A Register to Bus)
+{
+  id: 'ar-out',
+  from: { row: 2, col: 12 },
+  to: { row: 2, col: 10 },
+  label: '',
+  offsetY: 60, // slight difference so it doesn't overlap perfectly
+  offsetX:10,
+  thickness: 24,
+  headSize: 34,
+  direction: 'left'
+},
+
+
+// ALU ←
+{
+    id:'alu',
+  from: { row: 5, col: 12 },
+  to: { row: 5, col: 10 },
+  label: '',
+  offsetY: 30,
+  offsetX:10,
+  thickness: 20,
+  headSize: 30,
+  direction: 'left'
+},
+
+// B Register ←
+{
+    id:'br',
+  from: { row: 8, col: 10 },
+  to: { row: 8, col: 12 },
+  label: '',
+  offsetY: 30,
+  offsetX:10,
+  thickness: 20,
+  headSize: 30,
+  direction: 'right'
+},
+//arrow for output
+{
+    id:'or',
+  from: { row: 11, col: 10 },
+  to: { row: 11, col: 12 },
+  label: '',
+  offsetY: 30,
+  offsetX:10,
+  thickness: 20,
+  headSize: 30,
+  direction: 'right'
+},
+
+
+
+
 ]
+
 
 
 const components = [
@@ -109,6 +227,17 @@ const components = [
 
 <template>
 <div class="grid grid-cols-16 gap-px w-full h-full" style="grid-template-columns: repeat(16, 45px); grid-template-rows: repeat(16, 48px);">
+    <Arrow
+  v-for="(arrow, index) in arrows"
+  :key="index"
+  :from="arrow.from"
+  :to="arrow.to"
+  :label="arrow.label"
+  :offsetY="arrow.offsetY"
+  :offsetX="arrow.offsetX"
+  :thickness="arrow.thickness"
+  :headSize="arrow.headSize"
+/>
 
 
  <div
@@ -116,19 +245,11 @@ const components = [
         gridColumnStart: 7,
         gridColumnEnd: 'span 3',
         gridRowStart: 2,
-        gridRowEnd: 15
+        gridRowEnd: 14
       }"
     >
       <Bus title="8"/>
     </div>
-
-    <Arrow
-  v-for="(arrow, index) in arrows"
-  :key="index"
-  :from="arrow.from"
-  :to="arrow.to"
-  :label="arrow.label"
-/>
 
 
   <Box
