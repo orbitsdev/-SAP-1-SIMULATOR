@@ -8,25 +8,15 @@ import SimulationSpace from '../components/sap1/SimulationSpace.vue';
 </script>
 
 <template>
-<!-- Main container with relative positioning -->
-<main class="max-w-7xl mx-auto p-16 min-h-screen relative">
-    <!-- Grid guideline fixed in the background -->
-    <div class="absolute inset-0 pointer-events-none mt-16">
-        <GridGuideLine/>
-    </div>
-
-    <!-- Content layer where actual components will be placed -->
-    <div class="relative z-10 mt-16">
-      <SimulationSpace>
-
-      </SimulationSpace>
-    </div>
+ <main class="w-full flex justify-center items-start bg-white p-10 overflow-auto">
+  <div class="relative" style="width: 720px; height: 768px;">
+    <GridGuideLine class="absolute inset-0 z-0 pointer-events-none bg-yellow-200/10" />
+    <SimulationSpace class="absolute inset-0 z-10" />
+  </div>
 </main>
-<section>
 
-
-</section>
 </template>
+
 
 <style>
 

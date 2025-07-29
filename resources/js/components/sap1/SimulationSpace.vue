@@ -1,26 +1,33 @@
 <script setup lang="ts">
-import Box from './Box.vue';
-import Bus from './Bus.vue';
+import Box from './Box.vue'
 
-// Import any other components you'll need
+const components = [
+{
+  title: 'Program Counter (PC)',
+  value: '0001',
+  row: 2,        // Start at row 2
+  col: 4,        // Start at col 4
+  rowSpan: 2,    // Covers rows 2 and 3
+  colSpan: 2     // Covers cols 4 and 5
+}
+
+]
 </script>
 
 <template>
-    <div class="grid grid-cols-16 grid-rows-16 gap-1 w-full h-full" style="min-height: 800px;">
-        <!-- Program Counter (PC) - Using grid coordinates directly from the guideline -->
-        <Box title="Program Counter" value="PC" :row="3" :col="2" />
+<div class="grid grid-cols-16 gap-px w-full h-full" style="grid-template-columns: repeat(16, 45px); grid-template-rows: repeat(16, 48px);">
+  <Box
+    v-for="c in components"
+    :key="c.title"
+    :title="c.title"
+    :value="c.value"
+    :style="{
+      gridColumnStart: c.col,
+      gridRowStart: c.row,
+      gridColumnEnd: `span ${c.colSpan}`,
+      gridRowEnd: `span ${c.rowSpan}`
+    }"
+  />
+</div>
 
-    
-    </div>
 </template>
-
-<style scoped>
-/* Define grid columns and rows */
-.grid-cols-16 {
-  grid-template-columns: repeat(16, minmax(0, 1fr));
-}
-
-.grid-rows-16 {
-  grid-template-rows: repeat(16, minmax(0, 1fr));
-}
-</style>
