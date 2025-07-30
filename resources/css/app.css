@@ -171,3 +171,16 @@ html {
     margin: 0;
     padding: 0;
 }
+
+
+.animation-test {
+    @apply transition-all duration-500 ease-in-out;
+    background-color: #facc15; /* yellow-400 */
+    animation: bg-flash 1s ease-in-out forwards;
+  }
+
+  @keyframes bg-flash {
+    0%   { background-color: #facc15; }  /* yellow-400 */
+    50%  { background-color: #f59e0b; }  /* amber-500 */
+    100% { background-color: transparent; }
+  }

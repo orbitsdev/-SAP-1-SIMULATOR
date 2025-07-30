@@ -1,5 +1,6 @@
+import { reactive } from "vue";
 
-export const components = [
+export const components = reactive([
 {
     id:'program-counter',
   title: 'Program Counter (PC)',
@@ -94,4 +95,4 @@ export const components = [
   colSpan: 2     // Covers cols 4 and 5
 },
 
-]
+]);
