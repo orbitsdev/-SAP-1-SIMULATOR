@@ -76,11 +76,12 @@ function testMoveLabel() {
 
 <p
   id="moving-label"
-  class="absolute text-white text-lg px-2 shadow transition-all duration-300 font-mono bg-blue-600 z-50"
+  class="absolute text-white text-lg px-2 shadow font-mono bg-blue-600 rounded z-50 pointer-events-none"
   v-show="simulationProgramProcess.movingText !== ''"
 >
   {{ simulationProgramProcess.movingText }}
 </p>
+
 
 
 
