@@ -27,15 +27,18 @@ defineExpose({
   isRunning
 })
 
-
-// Simulation Program Data
 const program = [
-  '00001001', // LDA 09H → A ← M[09]
-  '00011010', // ADD 0AH → A ← A + M[0A]
-  '00101100', // SUB 0CH → A ← A - M[0C]
-  '11100000', // OUT      → OUT ← A
-  '11110000'  // HLT      → Stop
+  '00001001', // LDA 09H → A ← M[09] (1)
+  '00011010', // ADD 0AH → A ← A + M[0A] (1+2)
+  '00011011', // ADD 0BH → A ← A + M[0B] (1+2+3)
+  '11100000', // OUT     → OUT ← A
+  '11110000', // HLT     → Stop
+  '', '', '', '',        // 05–08 (empty)
+  '00000001', // 09 → data 1
+  '00000010', // 0A → data 2
+  '00000011', // 0B → data 3
 ]
+
 
 const simulationProgramProcess = reactive({
   type: 'manual',
