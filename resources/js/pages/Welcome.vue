@@ -8,9 +8,9 @@ import SimulationSpace from '../components/sap1/SimulationSpace.vue';
 </script>
 
 <template>
- <main class="w-full flex justify-center items-start bg-orange-600 p-10 overflow-auto">
+ <main class="w-full flex justify-center items-start  p-10 overflow-auto">
   <div class="relative" style="width: 720px; height: 768px;">
-    <!-- <GridGuideLine class="absolute inset-0 z-0 pointer-events-none bg-yellow-200/10 " /> -->
+    <GridGuideLine class="absolute inset-0 z-0 pointer-events-none bg-yellow-200/10 " />
     <SimulationSpace class="absolute inset-0 z-10" />
   </div>
 </main>

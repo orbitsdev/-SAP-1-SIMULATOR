@@ -1,15 +1,20 @@
-
-
+<!-- Bus.vue -->
 <script setup lang="ts">
 defineProps<{
-    title: string,
-    style?: Record<string, string> }>()
+  title: string,
+  style?: Record<string, string>
+}>()
 </script>
 
-
-<!-- Bus.vue -->
 <template>
-    <div class="w-full h-full bg-gray-500 opacity-60 rounded flex items-center justify-center">
-        <div class="font-bold text-xs text-center mb-1">{{ title }}</div>
+  <div class="w-full h-full bg-gray-500 opacity-60 rounded flex flex-col justify-center items-center relative text-white">
+
+    <!-- Arrows + Label vertically centered -->
+    <div class="flex flex-col items-center text-xl leading-none space-y-1">
+      <span class="text-3xl">⬆</span>
+      <div class="font-extrabold text-lg">{{ title }}</div>
+      <span class="text-3xl">⬇</span>
     </div>
-  </template>
+
+  </div>
+</template>
