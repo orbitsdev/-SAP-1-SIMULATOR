@@ -31,7 +31,7 @@ export const  arrows = [
     to: { row: 8, col: 5 },
     label: '4',
     offsetX: -55,   // reduce X shift
-    offsetY: -10,    // pull label down slightly
+    offsetY: 8,    // pull label down slightly
     thickness: 24,  // thinner body to match others
     headSize: 34,
     direction: 'down'
@@ -106,18 +106,32 @@ export const  arrows = [
   to: { row: 5, col: 13 },
   label: '8',
   offsetX: 0,  // ✅ move it right to avoid overlap
-  offsetY: -15,
+  offsetY: 2,
   thickness: 24,  // optional: reduce slightly if needed
   headSize: 34,
   direction: 'down'
 },
+{
+    id: 'register-b-to-alu',
+    from: { row: 9, col: 13 },
+    to: { row: 8, col: 13 },
+    label: '8',
+    offsetX: 0,
+    offsetY: 25,
+    thickness: 24,
+    headSize: 34,
+    direction: 'up'
+  }
+
+
+,
 {
   id: 'instruction-register-to-control-unit',
   from: { row: 13, col: 5 },  // below IR
   to: { row: 14, col: 5 },    // pointing to Control Unit
   label: '4',
   offsetX: -55,
-  offsetY: -5,
+  offsetY: 10,
   thickness: 24,
   headSize: 34,
   direction: 'down'
@@ -167,11 +181,12 @@ export const  arrows = [
   to: { row: 14, col: 13 },     // top of Binary Display
   label: '8',
   offsetX: 0,                   // slight nudge to center
-  offsetY: -5,
+  offsetY: 10,
   thickness: 24,
   headSize: 34,
   direction: 'down'
-}
+},
+
 
 
 

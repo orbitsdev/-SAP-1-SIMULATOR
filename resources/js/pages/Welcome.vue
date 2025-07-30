@@ -4,7 +4,7 @@ import SimulationSpace from '../components/sap1/SimulationSpace.vue'
 import { Button } from '@/components/ui/button'
 import { instructionSet } from '@/lib/instructions'
 import { ref } from 'vue'
-
+import GridGuideLine from '../components/sap1/GridGuideLine.vue'
 // 🎯 Ref to access SimulationSpace methods
 const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null)
 </script>
@@ -29,12 +29,13 @@ const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null)
 
 
     <div class="relative" style="width: 720px; height: 768px;">
+    <GridGuideLine  class="absolute inset-0 z-0"/>
       <SimulationSpace ref="simRef" class="absolute inset-0 z-10" />
     </div>
 
 
     <div class="flex space-x-4 mt-4" v-if="simRef">
-        <Button variant="default" @click="simRef?.runManualStep()">Manual</Button>
+        <!-- <Button variant="default" @click="simRef?.runManualStep()">Manual</Button>
         <Button variant="default" @click="simRef?.runAuto()">Auto</Button>
         <Button
           variant="default"
@@ -43,7 +44,7 @@ const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null)
         >
           {{ simRef?.isPaused ? 'Resume' : 'Pause' }}
         </Button>
-        <Button variant="default" @click="simRef?.resetSimulation()">Reset</Button>
+        <Button variant="default" @click="simRef?.resetSimulation()">Reset</Button> -->
     </div>
 
   </main>
