@@ -28,17 +28,16 @@ defineExpose({
 })
 
 const program = [
-  '00001001', // LDA 09H → A ← M[09] (1)
-  '00011010', // ADD 0AH → A ← A + M[0A] (1+2)
-  '00011011', // ADD 0BH → A ← A + M[0B] (1+2+3)
-  '11100000', // OUT     → OUT ← A
-  '11110000', // HLT     → Stop
-  '', '', '', '',        // 05–08 (empty)
-  '00000001', // 09 → data 1
-  '00000010', // 0A → data 2
-  '00000011', // 0B → data 3
+  '00001110', // 00: LDA 0E → A ← M[0E] = 00000011 (3)
+  '0001100F', // 01: ADD 0F → A ← A + M[0F] = 3 + 4
+  '11100000', // 02: OUT      → OUT ← A = 7
+  '11110000', // 03: HLT
+  '', '', '', '',  // 04–07: unused
+  '', '', '', '',  // 08–0B: unused
+  '', '',          // 0C, 0D: unused
+  '00000011',      // 0E: value = 3
+  '00000100'       // 0F: value = 4
 ]
-
 
 const simulationProgramProcess = reactive({
   type: 'manual',
@@ -266,10 +265,15 @@ function handleT3(instruction: string) {
   const address = parseInt(operandBinary, 2)
   const valueFromMemory = program[address] || '00000000'
 
+  // Debug logs
+  console.log('Opcode:', opcode, 'Value from PROM:', valueFromMemory)
+  console.log('Address in binary:', operandBinary, 'Address in decimal:', address)
+
   updateComponentValue('prom', valueFromMemory)
 
   if (opcode === '0000') {
     // LDA → Load to A
+    console.log('→ Loading to A register')
     loopMultipleComponentGlows(['prom', 'register-a'])
     simulationProgramProcess.movingText = valueFromMemory
     animateMovingText('moving-label', movePaths.moveFromPromToA, valueFromMemory, () => {
@@ -281,6 +285,7 @@ function handleT3(instruction: string) {
     })
   } else {
     // ADD / SUB → Load to B
+    console.log('→ Loading to B register')
     loopMultipleComponentGlows(['prom', 'register-b'])
     simulationProgramProcess.movingText = valueFromMemory
     animateMovingText('moving-label', movePaths.moveFromPromToB, valueFromMemory, () => {
@@ -292,62 +297,98 @@ function handleT3(instruction: string) {
     })
   }
 }
+
+
 function handleT4(instruction: string) {
   const opcode = instruction.slice(0, 4)
 
   if (opcode === '0001' || opcode === '0010') {
-    // ADD or SUB
-    const aVal = parseInt(components.find(c => c.id === 'register-a')?.value || '00000000', 2)
-    const bVal = parseInt(components.find(c => c.id === 'register-b')?.value || '00000000', 2)
+    // ADD or SUB operation
 
-    const result = opcode === '0001' // ADD
+    const aValBin = components.find(c => c.id === 'register-a')?.value || '00000000'
+    const bValBin = components.find(c => c.id === 'register-b')?.value || '00000000'
+    const aVal = parseInt(aValBin, 2)
+    const bVal = parseInt(bValBin, 2)
+
+    const result = opcode === '0001'
       ? (aVal + bVal) & 0xFF
-      : (aVal - bVal + 256) & 0xFF // SUB with 8-bit wraparound
+      : (aVal - bVal + 256) & 0xFF // wrap for SUB
 
     const resultBinary = result.toString(2).padStart(8, '0')
 
-    loopMultipleComponentGlows(['arithmetic-logic-unit', 'register-a'])
-    simulationProgramProcess.movingText = resultBinary
+    console.log(`🔧 T4 EXECUTE: ${opcode === '0001' ? 'ADD' : 'SUB'} → A(${aVal}) ${opcode === '0001' ? '+' : '-'} B(${bVal}) = ${result} (${resultBinary})`)
 
-    animateMovingText('moving-label', movePaths.moveFromAluToA, resultBinary, () => {
-      updateComponentValue('register-a', resultBinary)
-      simulationProgramProcess.movingText = ''
-      stopSpecificGlows(['arithmetic-logic-unit', 'register-a'])
-      advanceStep()
-      simulationProgramProcess.isRunning = false
+    // 🔁 Step 1: B → ALU
+    simulationProgramProcess.movingText = bValBin
+    loopMultipleComponentGlows(['register-b', 'arithmetic-logic-unit'])
+
+    animateMovingText('moving-label', movePaths.moveFromBToAlu, bValBin, () => {
+      stopSpecificGlows(['register-b'])
+
+      // 🔁 Step 2: A → ALU
+      simulationProgramProcess.movingText = aValBin
+      loopMultipleComponentGlows(['register-a', 'arithmetic-logic-unit'])
+
+      animateMovingText('moving-label', movePaths.moveFromAToAlu, aValBin, () => {
+        stopSpecificGlows(['register-a'])
+
+        // 🔁 Step 3: ALU → A
+        simulationProgramProcess.movingText = resultBinary
+        loopMultipleComponentGlows(['arithmetic-logic-unit', 'register-a'])
+
+        animateMovingText('moving-label', movePaths.moveFromAluToA, resultBinary, () => {
+          updateComponentValue('register-a', resultBinary)
+          simulationProgramProcess.movingText = ''
+          stopSpecificGlows(['arithmetic-logic-unit', 'register-a'])
+
+          advanceStep()
+          simulationProgramProcess.isRunning = false
+
+          // Auto-continue
+          if (simulationProgramProcess.type === 'auto' && !simulationProgramProcess.isPaused) {
+            runCurrentStep()
+          }
+        })
+      })
     })
+  }
 
-  } else if (opcode === '1110') {
-    // OUT
+  else if (opcode === '1110') {
+    // OUT instruction: A → OUT
     const aVal = components.find(c => c.id === 'register-a')?.value || '00000000'
-    loopMultipleComponentGlows(['register-a', 'output-register'])
     simulationProgramProcess.movingText = aVal
+
+    loopMultipleComponentGlows(['register-a', 'output-register'])
 
     animateMovingText('moving-label', movePaths.moveFromAToOut, aVal, () => {
       updateComponentValue('output-register', aVal)
+      updateComponentValue('binary-display', aVal)
       simulationProgramProcess.movingText = ''
       stopSpecificGlows(['register-a', 'output-register'])
+
       advanceStep()
       simulationProgramProcess.isRunning = false
-    })
 
-  } else {
-    // LDA / HLT → skip T4
+      if (simulationProgramProcess.type === 'auto' && !simulationProgramProcess.isPaused) {
+        runCurrentStep()
+      }
+    })
+  }
+
+  else {
+    // T4 skipped for LDA / HLT
     advanceStep()
     simulationProgramProcess.isRunning = false
+
+    if (simulationProgramProcess.type === 'auto' && !simulationProgramProcess.isPaused) {
+      runCurrentStep()
+    }
   }
 }
+
+
 function handleT5(instruction: string) {
-  const opcode = instruction.slice(0, 4)
-
-  if (opcode === '1111') {
-    // HLT - Stop the simulation
-    stopSimulation()
-    alert('Simulation halted (HLT encountered).')
-    return
-  }
-
-  // For all other instructions: Reset to T0 of next instruction
+  // Most instructions don’t require T5
   advanceStep()
   simulationProgramProcess.isRunning = false
 
@@ -355,6 +396,7 @@ function handleT5(instruction: string) {
     runCurrentStep()
   }
 }
+
 
 
 function advanceStep() {
@@ -374,10 +416,6 @@ function advanceStep() {
 
 function isFinished() {
   return simulationProgramProcess.currentInstruction >= program.length
-}
-
-function highlightComponents(ids: string[]) {
-
 }
 
 
@@ -405,14 +443,18 @@ function togglePause() {
   }
 }
 
-
+function testMovingPath() {
+  animateMovingText('moving-label', movePaths.moveFromPcToMar, '0000', () => {
+    console.log('Animation completed')
+  })
+}
 
 </script>
 
 <template>
   <div class="relative grid grid-cols-16 gap-px w-full h-full"
        style="grid-template-columns: repeat(16, 45px); grid-template-rows: repeat(16, 48px);">
-
+<button @click="testMovingPath">Test Moving Path</button>
     <!-- ✨ Floating moving text -->
     <MovingLabel :text="simulationProgramProcess.movingText" />
 

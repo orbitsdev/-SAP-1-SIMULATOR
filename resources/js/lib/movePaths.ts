@@ -16,47 +16,50 @@ export const movePaths = {
       { x: 109, y: 510 },
     ],
 
-  moveFromIrToMar: [
-    { x: 109, y: 530 },
-    { x: 109, y: 559 },
-    { x: 316, y: 559 },
-    { x: 316, y: 215 },
-    { x: 109, y: 215 },
-    { x: 109, y: 225 }
-  ],
+    moveFromIrToMar: [
+      { x: 109, y: 530 },
+      { x: 109, y: 559 },
+      { x: 316, y: 559 },
+      { x: 316, y: 215 },
+      { x: 109, y: 215 },
+      { x: 109, y: 225 }
+    ],
 
-  moveFromPromToA: [
-    { x: 109, y: 365 },   // PROM output
-    { x: 316, y: 365 },
-    { x: 316, y: 54 },    // A Register row
-    { x: 525, y: 54 },
-    { x: 525, y: 90 }
-  ],
+    moveFromPromToA: [
+      { x: 109, y: 365 },
+      { x: 316, y: 365 },
+      { x: 316, y: 54 },
+      { x: 525, y: 54 },
+      { x: 525, y: 90 }
+    ],
 
-  moveFromAToOut: [
-    { x: 525, y: 90 },    // A Register center
-    { x: 525, y: 54 },    // Up to bus
-    { x: 316, y: 54 },    // ← to left bus
-    { x: 316, y: 508 },   // ↓ to Output row
-    { x: 525, y: 508 },
-    { x: 525, y: 550 }    // Final position at Output Register
-  ],
-  moveFromPromToB: [
-    { x: 109, y: 365 },
-    { x: 316, y: 365 },
-    { x: 525, y: 365 },
-    { x: 525, y: 380 }   // center of B Register
-  ],
+    moveFromPromToB: [
+      { x: 109, y: 365 },
+      { x: 316, y: 365 },
+      { x: 525, y: 365 },
+      { x: 525, y: 380 }
+    ],
 
-  moveFromAluToA: [
-    { x: 525, y: 218 },  // From ALU
-    { x: 316, y: 218 },  // ← Left into bus
-    { x: 316, y: 54 },   // ↑ Up to A Register row
-    { x: 525, y: 54 },   // → Right to A column
-    { x: 525, y: 90 }    // ↓ Into A Register center
-  ]
+    moveFromBToAlu: [
+        { x: 610, y: 380 },
+        { x: 610, y: 280 }
+      ],
+      moveFromAToAlu: [
+        { x: 610, y: 120 },
+        { x: 610, y: 280 }
+      ],
 
+      moveFromAluToA: [
+        { x: 610, y: 280 },
+        { x: 610, y: 120 }
+      ],
+    moveFromAToOut: [
+      { x: 610, y: 120 },
+      { x: 610, y: 480 },
+    ],
 
-
-    // 🟡 Add more later: MAR to PROM, IR to A, A to B, B to ALU, etc.
+    moveFromOutToDisplay: [
+      { x: 525, y: 550 },
+      { x: 525, y: 590 }
+    ]
   }
