@@ -5,7 +5,16 @@ import Bus from './Bus.vue'
 import Arrow from './Arrow.vue';
 import { arrows } from '@/lib/arrows'
 import { components } from '@/lib/components'
-import { reactive } from 'vue';
+import { nextTick, reactive } from 'vue';
+import { onMounted } from 'vue'
+import { gsap } from 'gsap';
+import { movePaths } from '@/lib/movePaths'
+
+
+// onMounted(() => {
+//   testMoveLabel()
+// })
+
 
 //simulation data
 const program: string[] = [
@@ -23,16 +32,46 @@ const simulationProgramProcess = reactive({
   highlight: '',        // ID of box or signal being highlighted
   intervalId: null as ReturnType<typeof setInterval> | null
 });
+function testMoveLabel() {
+  const moveFromPcToMar = movePaths.moveFromAluToA;
+  animateMovingText(moveFromPcToMar, '0000')
+}
 
 
-// TEMPORARY TEST
-setTimeout(() => {
-  simulationProgramProcess.highlight = 'program-counter'
-}, 1000)
+function animateMovingText(path: { x: number, y: number }[], text: string) {
+  simulationProgramProcess.movingText = text;
 
-setTimeout(() => {
-  simulationProgramProcess.highlight = ''
-}, 3000)
+  nextTick(() => {
+    const labelEl = document.getElementById('moving-label') as HTMLElement;
+    if (!labelEl) return;
+
+    // Set start position
+    const [start, ...rest] = path;
+    gsap.set(labelEl, {
+      x: start.x,
+      y: start.y
+    });
+
+    // Build timeline
+    const tl = gsap.timeline({
+      onComplete: () => {
+        simulationProgramProcess.movingText = '';
+      }
+    });
+
+    for (const point of rest) {
+      tl.to(labelEl, {
+        x: point.x,
+        y: point.y,
+        duration: 1.5, // ← Adjust speed here (1.5s per hop)
+        ease: 'power2.inOut'
+      });
+    }
+  });
+}
+
+
+
 
 
 </script>
@@ -40,7 +79,25 @@ setTimeout(() => {
 <template>
 
 <div class="relative grid grid-cols-16 gap-px w-full h-full" style="grid-template-columns: repeat(16, 45px); grid-template-rows: repeat(16, 48px);">
-    <p v-if="simulationProgramProcess.movingText" class="absolute top-2 left-2 text-white text-xs">{{ simulationProgramProcess.movingText }}</p>
+    <div class="mt-4 flex justify-center">
+  <button
+    @click="testMoveLabel"
+    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+  >
+    Test Move Label
+  </button>
+</div>
+
+<p
+  v-if="simulationProgramProcess.movingText"
+  id="moving-label"
+  class="absolute text-white text-lg px-2 shadow transition-all duration-300 font-mono bg-blue-600"
+  style="top: 0; left: 0; z-index: 50;"
+>
+  {{ simulationProgramProcess.movingText }}
+</p>
+
+
     <Arrow
   v-for="(arrow, index) in arrows"
   :key="index"
