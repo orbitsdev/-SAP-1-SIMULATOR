@@ -4,7 +4,7 @@ export const components = reactive([
 {
     id:'program-counter',
   title: 'Program Counter (PC)',
-  value: '0000',
+  value: '',
   row: 2,        // Start at row 2
   col: 3,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
@@ -13,7 +13,7 @@ export const components = reactive([
 {
     id:'memory-address-register',
   title: 'Memory Address Register (MAR)',
-  value: '0000',
+  value: '',
   row: 5,        // Start at row 2
   col: 3,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
@@ -22,7 +22,7 @@ export const components = reactive([
 {
     id:'prom',
   title: '16x8 PROM',
-  value: '0000',
+  value: '',
   row: 8,        // Start at row 2
   col: 3,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
@@ -31,7 +31,7 @@ export const components = reactive([
 {
     id:'instruction-register',
   title: 'Instruction Register (IR)',
-  value: '0000',
+  value: '',
   row: 11,        // Start at row 2
   col: 3,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
@@ -41,7 +41,7 @@ export const components = reactive([
 {
     id:'control-unit',
   title: 'Control Unit CON',
-  value: '0000',
+  value: '',
   row: 14,        // Start at row 2
   col: 3,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
@@ -51,7 +51,7 @@ export const components = reactive([
 {
     id:'register-a',
   title: 'A Register',
-  value: '0000',
+  value: '',
   row: 2,        // Start at row 2
   col: 12,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
@@ -60,7 +60,7 @@ export const components = reactive([
 {
     id:'arithmetic-logic-unit',
   title: 'Arithmetic Logic Unit (ALU)',
-  value: '0000',
+  value: '',
   row: 5,        // Start at row 2
   col: 12,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
@@ -70,7 +70,7 @@ export const components = reactive([
 {
     id:'register-b',
   title: 'B Register',
-  value: '0000',
+  value: '',
   row: 8,        // Start at row 2
   col: 12,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
@@ -79,7 +79,7 @@ export const components = reactive([
 {
     id:'output-register',
   title: 'Output Register',
-  value: '0000',
+  value: '',
   row: 11,        // Start at row 2
   col: 12,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3
@@ -88,7 +88,7 @@ export const components = reactive([
 {
     id:'binary-display',
   title: 'Binary Display',
-  value: '0000',
+  value: '',
   row: 14,        // Start at row 2
   col: 12,        // Start at col 4
   rowSpan: 2,    // Covers rows 2 and 3

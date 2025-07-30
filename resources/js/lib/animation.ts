@@ -1,5 +1,85 @@
 // src/lib/animation.ts
 import { gsap } from 'gsap'
+import { animationSpeed } from './settings'
+
+const activeGlows = new Map<string, gsap.core.Timeline>()
+
+export function loopMultipleComponentGlows(ids: string[]) {
+  ids.forEach(id => {
+    const el = document.getElementById(id)
+    if (!el) return
+
+    // Prevent duplicate glows
+    if (activeGlows.has(id)) {
+      activeGlows.get(id)?.kill()
+      activeGlows.delete(id)
+    }
+
+    const tl = gsap.timeline({ repeat: -1, yoyo: true })
+    tl.to(el, {
+      backgroundColor: '#fde047',
+      boxShadow: '0 0 16px 6px rgba(253, 224, 71, 0.6)',
+      duration: animationSpeed.value,
+      ease: 'sine.inOut'
+    }).to(el, {
+      backgroundColor: '#86efac',
+      boxShadow: '0 0 6px 2px rgba(253, 224, 71, 0.3)',
+      duration: animationSpeed.value,
+      ease: 'sine.inOut'
+    })
+
+    activeGlows.set(id, tl)
+  })
+}
+
+export function stopSpecificGlows(ids: string[]) {
+    ids.forEach(id => {
+      const el = document.getElementById(id)
+      if (!el) return
+
+      const tl = activeGlows.get(id)
+      if (tl) {
+        tl.kill()
+        activeGlows.delete(id)
+      }
+
+      gsap.set(el, {
+        backgroundColor: '',
+        boxShadow: ''
+      })
+    })
+  }
+
+  export function stopAllComponentGlows() {
+    activeGlows.forEach((tl, id) => {
+      tl.kill()
+      const el = document.getElementById(id)
+      if (el) {
+        gsap.set(el, {
+          backgroundColor: '',
+          boxShadow: ''
+        })
+      }
+    })
+    activeGlows.clear()
+  }
+
+export function stopComponentGlow(id: string) {
+    const el = document.getElementById(id)
+    if (!el) return
+
+    const tl = activeGlows.get(id)
+    if (tl) {
+      tl.kill()
+      activeGlows.delete(id)
+    }
+
+    // Reset visual style
+    gsap.set(el, {
+      backgroundColor: '',
+      boxShadow: ''
+    })
+  }
 
 export function animateMovingText(
     labelId: string,
@@ -25,31 +105,24 @@ export function animateMovingText(
       zIndex: 999
     })
 
-    // 🔁 Flicker animation while moving
-    const glowLoop = gsap.timeline({ repeat: -1, yoyo: true });
-
+    // 🔁 Pulse/Glow animation while moving
+    const glowLoop = gsap.timeline({ repeat: -1, yoyo: true })
     glowLoop.to(labelEl, {
-    //   scale: 1.2,
-      backgroundColor: '#fde047', // yellow-300
-      boxShadow: '0 0 20px 6px rgba(253, 224, 71, 0.6)', // bright yellow pulse
-      duration: 0.08,
+      backgroundColor: '#fde047',
+      boxShadow: '0 0 20px 6px rgba(253, 224, 71, 0.6)',
+      duration: 0.15,
       ease: 'sine.inOut'
     }).to(labelEl, {
-    //   scale: 1,
       backgroundColor: '#fde047',
       boxShadow: '0 0 8px 2px rgba(253, 224, 71, 0.4)',
-      duration: 0.08,
+      duration: 0.15,
       ease: 'sine.inOut'
-    });
+    })
 
-
-
-
-
-    // 📦 Move across the path
+    // 🚚 Movement animation
     const tl = gsap.timeline({
       onComplete: () => {
-        glowLoop.kill() // 🔚 Stop glow loop
+        glowLoop.kill()
         labelEl.innerText = ''
         gsap.set(labelEl, { opacity: 0 })
         onComplete?.()
@@ -60,17 +133,16 @@ export function animateMovingText(
       tl.to(labelEl, {
         x: point.x,
         y: point.y,
-        duration: 0.8,
+        duration: animationSpeed.value,
         ease: 'power1.inOut'
       })
     }
 
-    // 🧨 Final fade out with smooth scale down
     tl.to(labelEl, {
       opacity: 0,
       scale: 0.9,
       boxShadow: '0 0 0px 0px rgba(0,0,0,0)',
-      duration: 0.25
+      duration: 0.5
     })
   }
 
