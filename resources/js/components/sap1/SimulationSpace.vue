@@ -6,16 +6,25 @@ import MovingLabel from './MovingLabel.vue'
 import { arrows } from '@/lib/arrows'
 import { components } from '@/lib/components'
 import { movePaths } from '@/lib/movePaths'
-import { animateHighlightAndGlow, animateMovingText, loopMultipleComponentGlows, stopSpecificGlows } from '@/lib/animation'
-import { nextTick, reactive, onMounted } from 'vue'
+import { animateHighlightAndGlow, animateMovingText, loopMultipleComponentGlows, stopSpecificGlows, stopAllComponentGlows, pauseMovingAnimation, resumeMovingAnimation } from '@/lib/animation'
+import { nextTick, reactive, onMounted, computed } from 'vue'
 import { defineExpose } from 'vue'
+
+// Expose computed properties for simulation state
+const simulationType = computed(() => simulationProgramProcess.type)
+const isPaused = computed(() => simulationProgramProcess.isPaused)
+const isRunning = computed(() => simulationProgramProcess.isRunning)
 
 defineExpose({
   runManualStep,
   runAuto,
   pauseSimulation,
   resumeSimulation,
-  resetSimulation
+  resetSimulation,
+  togglePause,
+  simulationType,
+  isPaused,
+  isRunning
 })
 
 
@@ -49,6 +58,10 @@ function runCurrentStep() {
     return
   }
 
+  // 🛑 Ensure any active animation is stopped before proceeding
+  stopAllComponentGlows()
+  simulationProgramProcess.movingText = ''
+
   const step = simulationProgramProcess.currentStep
   const instruction = program[simulationProgramProcess.currentInstruction]
 
@@ -68,14 +81,36 @@ function runCurrentStep() {
 
 // 🔘 Button Actions
 function runManualStep() {
-    if(simulationProgramProcess.isRunning || isFinished()) return
-    simulationProgramProcess.type = 'manual'
-    simulationProgramProcess.isRunning = true
-     runCurrentStep()
+  if(isFinished()) return
 
+  // 🧼 Reset before running
+  stopAllComponentGlows()
+  simulationProgramProcess.movingText = ''
+
+  // If already running, reset to current step
+  if(simulationProgramProcess.isRunning) {
+    simulationProgramProcess.isRunning = false
+    return
+  }
+
+  simulationProgramProcess.type = 'manual'
+  simulationProgramProcess.isRunning = true
+  simulationProgramProcess.isPaused = false
+  runCurrentStep()
 }
+
 function runAuto() {
-  if (simulationProgramProcess.isRunning || isFinished()) return
+  if(isFinished()) return
+
+  // 🧼 Clean up previous state
+  stopAllComponentGlows()
+  simulationProgramProcess.movingText = ''
+
+  // If already running, reset to current step
+  if(simulationProgramProcess.isRunning) {
+    simulationProgramProcess.isRunning = false
+    return
+  }
 
   simulationProgramProcess.type = 'auto'
   simulationProgramProcess.isRunning = true
@@ -88,17 +123,24 @@ function pauseSimulation() {
   if (simulationProgramProcess.type === 'auto') {
     simulationProgramProcess.isPaused = true
     simulationProgramProcess.isRunning = false
+
+    // Pause any active animations
+    pauseMovingAnimation()
   }
 }
+
 function resumeSimulation() {
   if (simulationProgramProcess.type === 'auto' && simulationProgramProcess.isPaused) {
     simulationProgramProcess.isPaused = false
     simulationProgramProcess.isRunning = true
-    runCurrentStep()
+
+    // Resume any active animations
+    if (!resumeMovingAnimation()) {
+      // If no animation to resume, continue with next step
+      runCurrentStep()
+    }
   }
 }
-
-import { stopAllComponentGlows } from '@/lib/animation'
 
 function resetSimulation() {
   simulationProgramProcess.currentInstruction = 0
@@ -350,6 +392,14 @@ function stopSimulation() {
 
   simulationProgramProcess.isRunning = false
   simulationProgramProcess.isPaused = false
+}
+
+function togglePause() {
+  if (simulationProgramProcess.isPaused) {
+    resumeSimulation()
+  } else {
+    pauseSimulation()
+  }
 }
 
 

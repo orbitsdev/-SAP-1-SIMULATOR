@@ -27,16 +27,22 @@ const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null)
       </div>
     </div>
 
-    <!-- 🟦 Simulation Grid -->
+
     <div class="relative" style="width: 720px; height: 768px;">
       <SimulationSpace ref="simRef" class="absolute inset-0 z-10" />
     </div>
 
-    <!-- 🕹 Simulation Controls -->
+
     <div class="flex space-x-4 mt-4" v-if="simRef">
         <Button variant="default" @click="simRef?.runManualStep()">Manual</Button>
         <Button variant="default" @click="simRef?.runAuto()">Auto</Button>
-        <Button variant="default" @click="simRef?.togglePause()">Pause</Button>
+        <Button
+          variant="default"
+          @click="simRef?.togglePause()"
+          :disabled="simRef?.simulationType !== 'auto'"
+        >
+          {{ simRef?.isPaused ? 'Resume' : 'Pause' }}
+        </Button>
         <Button variant="default" @click="simRef?.resetSimulation()">Reset</Button>
     </div>
 
