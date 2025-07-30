@@ -8,7 +8,10 @@ import { components } from '@/lib/components'
 import { nextTick, reactive } from 'vue';
 import { onMounted } from 'vue'
 import { gsap } from 'gsap';
+import { animateMovingText, animateHighlightAndGlow } from '@/lib/animation'
 import { movePaths } from '@/lib/movePaths'
+
+
 
 
 // onMounted(() => {
@@ -33,41 +36,15 @@ const simulationProgramProcess = reactive({
   intervalId: null as ReturnType<typeof setInterval> | null
 });
 function testMoveLabel() {
-  const moveFromPcToMar = movePaths.moveFromAluToA;
-  animateMovingText(moveFromPcToMar, '0000')
-}
-
-
-function animateMovingText(path: { x: number, y: number }[], text: string) {
-  simulationProgramProcess.movingText = text;
+  const moveFromPcToMar = movePaths.moveFromPcToMar
+  simulationProgramProcess.movingText = '0000'
 
   nextTick(() => {
-    const labelEl = document.getElementById('moving-label') as HTMLElement;
-    if (!labelEl) return;
-
-    // Set start position
-    const [start, ...rest] = path;
-    gsap.set(labelEl, {
-      x: start.x,
-      y: start.y
-    });
-
-    // Build timeline
-    const tl = gsap.timeline({
-      onComplete: () => {
-        simulationProgramProcess.movingText = '';
-      }
-    });
-
-    for (const point of rest) {
-      tl.to(labelEl, {
-        x: point.x,
-        y: point.y,
-        duration: 1.5, // ← Adjust speed here (1.5s per hop)
-        ease: 'power2.inOut'
-      });
-    }
-  });
+    animateMovingText('moving-label', moveFromPcToMar, '0000', () => {
+      simulationProgramProcess.movingText = ''
+      console.log('Finished')
+    })
+  })
 }
 
 
@@ -80,8 +57,16 @@ function animateMovingText(path: { x: number, y: number }[], text: string) {
 
 <div class="relative grid grid-cols-16 gap-px w-full h-full" style="grid-template-columns: repeat(16, 45px); grid-template-rows: repeat(16, 48px);">
     <div class="mt-4 flex justify-center">
+        <button
+  @click="animateHighlightAndGlow('program-counter')"
+  class="bg-yellow-500 text-white px-3 py-1 rounded ml-2"
+>
+  Highlight PC
+</button>
+
   <button
-    @click="testMoveLabel"
+  @click="testMoveLabel()"
+
     class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
   >
     Test Move Label
@@ -89,13 +74,13 @@ function animateMovingText(path: { x: number, y: number }[], text: string) {
 </div>
 
 <p
-  v-if="simulationProgramProcess.movingText"
   id="moving-label"
-  class="absolute text-white text-lg px-2 shadow transition-all duration-300 font-mono bg-blue-600"
-  style="top: 0; left: 0; z-index: 50;"
+  class="absolute text-white text-lg px-2 shadow transition-all duration-300 font-mono bg-blue-600 z-50"
+  v-show="simulationProgramProcess.movingText !== ''"
 >
   {{ simulationProgramProcess.movingText }}
 </p>
+
 
 
     <Arrow
