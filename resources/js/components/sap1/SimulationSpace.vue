@@ -47,11 +47,11 @@
 
 
     const program = [
-    '00001001', // LDA 09H → A ← M[09]
-     '00011010', // ADD 0AH → A ← A + M[0A]
-    '00101100', // SUB 0CH → A ← A - M[0C]
-    '11100000', // OUT → Output ← A
-    '11110000'  // HLT → Halt
+    '00001001',
+     '00011010',
+    '00101100',
+    '11100000',
+    '11110000'
     ]
 
 
@@ -77,9 +77,9 @@
     currentInstruction: 0,
     instruction: '',
     highlights: [] as string[],
-    movingText: '', // ✅ this is enough for the floating label
+    movingText: '',
     intervalId: null as ReturnType<typeof setInterval> | null,
-    opcode: '',   // e.g. '0001' for ADD
+    opcode: '',
     operand: '',
     errorMessage: '',
     halted: false,
@@ -89,8 +89,7 @@
     })
 
     const validOpcodes = ['0000', '0001', '0010', '1110', '1111']
-
-    function isValidInstruction(bin: string): boolean {
+ function isValidInstruction(bin: string): boolean {
   if (!/^[01]{8}$/.test(bin)) return false
   const opcode = bin.slice(0, 4)
   return validOpcodes.includes(opcode)
