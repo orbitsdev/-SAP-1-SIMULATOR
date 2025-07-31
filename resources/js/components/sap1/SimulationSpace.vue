@@ -6,7 +6,7 @@
     import MovingLabel from './MovingLabel.vue'
     import { arrows } from '@/lib/arrows'
     import { components } from '@/lib/components'
-    import { animateHighlightAndGlow, animateMovingText, loopMultipleComponentGlows, stopSpecificGlows, stopAllComponentGlows, pauseMovingAnimation, resumeMovingAnimation } from '@/lib/animation'
+    import { animateHighlightAndGlow, animateMovingText, loopMultipleComponentGlows, stopSpecificGlows, stopAllComponentGlows, pauseMovingAnimation, resumeMovingAnimation, pauseAllComponentGlows, resumeAllComponentGlows } from '@/lib/animation'
     import { nextTick, reactive, onMounted, computed } from 'vue'
     import { defineExpose } from 'vue'
     import { movePaths } from '@/lib/movePaths'
@@ -47,11 +47,11 @@
 
 
     const program = [
-    '00001001', // LDA 09H → A ← M[09]
-    '00011010', // ADD 0AH → A ← A + M[0A]
-    '00101100', // SUB 0CH → A ← A - M[0C]
-    '11100000', // OUT → Output ← A
-    '11110000'  // HLT → Halt
+    // '00001001', // LDA 09H → A ← M[09]
+     '00011010', // ADD 0AH → A ← A + M[0A]
+    // '00101100', // SUB 0CH → A ← A - M[0C]
+    // '11100000', // OUT → Output ← A
+    // '11110000'  // HLT → Halt
     ]
 
 
@@ -85,6 +85,7 @@
     halted: false,
     invalidInstructionIndex: -1,
     showErrorModal: false,
+    simulationDone: false,
     })
 
     const validOpcodes = ['0000', '0001', '0010', '1110', '1111']
@@ -146,21 +147,18 @@ function isFinished(): boolean {
   }
   return false
 }
-
 function stopSimulation() {
   processor.isRunning = false
   processor.isPaused = false
-  processor.halted = true // ✅ mark as halted
-  // ⚠️ Do NOT reset these:
-  // processor.currentInstruction = 0
-  // processor.currentStep = 0
-  // processor.opcode, operand, instruction
+  processor.halted = true
+  processor.simulationDone = true // ✅ trigger the dialog
 
   stopAllComponentGlows()
   pauseMovingAnimation()
 
   console.log('🛑 Simulation stopped (end or manual).')
 }
+
 
 
 
@@ -241,6 +239,7 @@ function runAuto() {
   processor.errorMessage = ''
   processor.invalidInstructionIndex = -1
   processor.showErrorModal = false
+  processor.simulationDone = false
 
   stopAllComponentGlows()
   pauseMovingAnimation()
@@ -250,21 +249,23 @@ function runAuto() {
 
   console.log('🔄 Simulation fully reset.')
 }
-
-
 function togglePause() {
   if (!processor.isRunning) return
 
   processor.isPaused = !processor.isPaused
 
   if (processor.isPaused) {
-    pauseMovingAnimation()        // ✅ already centralized
-    stopAllComponentGlows()       // optional visual effect
+    pauseMovingAnimation()
+    pauseAllComponentGlows() // ✅ pause, not stop
     console.log('⏸ Simulation Paused')
   } else {
-    resumeMovingAnimation()       // ✅ already centralized
+    resumeMovingAnimation()
+    resumeAllComponentGlows() // ✅ resume glow
     console.log('▶️ Simulation Resumed')
-    runAuto()                     // 🔁 continue auto
+
+    if (processor.movingText === '') {
+      runAuto()
+    }
   }
 }
 
@@ -365,7 +366,6 @@ function handleT3(instruction: string, onComplete: () => void) {
     onComplete()
   })
 }
-
 function handleT4(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode
 
@@ -374,37 +374,32 @@ function handleT4(instruction: string, onComplete: () => void) {
     const bVal = getComponentValue('b')
     const result = binaryAdd(aVal, bVal)
 
-    // 1️⃣ Glow A and B
-    loopMultipleComponentGlows(['a', 'b'])
-    console.log('🔆 Step 1: Glow A and B')
-
-    // 2️⃣ Animate B → ALU
+    // 1️⃣ Glow B only (B → ALU)
+    loopMultipleComponentGlows(['b'])
     processor.movingText = bVal
     animateMovingText('moving-label', movePaths.bToAlu, bVal, () => {
       stopSpecificGlows(['b'])
       processor.movingText = ''
 
-      // 3️⃣ Glow ALU before A moves
+      // 2️⃣ Glow ALU before A → ALU
       animateHighlightAndGlow('alu')
 
       setTimeout(() => {
-        // 4️⃣ Animate A → ALU
+        // 3️⃣ Glow A then A → ALU
+        loopMultipleComponentGlows(['a']) // ✨ only now
         processor.movingText = aVal
         animateMovingText('moving-label', movePaths.aToAlu, aVal, () => {
           stopSpecificGlows(['a'])
           processor.movingText = ''
 
-          // 5️⃣ Delay then ALU → A
+          // 4️⃣ ALU → A
           setTimeout(() => {
             processor.movingText = result
             animateMovingText('moving-label', movePaths.aluToA, result, () => {
               stopSpecificGlows(['alu'])
-
-              // 6️⃣ Update A and glow
               updateComponentValue('a', result)
               animateHighlightAndGlow('a')
               processor.movingText = ''
-
               console.log('➕ T4: A ← A + B =', result)
               onComplete()
             })
@@ -418,22 +413,25 @@ function handleT4(instruction: string, onComplete: () => void) {
     const bVal = getComponentValue('b')
     const result = binarySub(aVal, bVal)
 
-    loopMultipleComponentGlows(['a', 'b'])
+    // 1️⃣ Glow B only
+    loopMultipleComponentGlows(['b'])
     processor.movingText = bVal
-
     animateMovingText('moving-label', movePaths.bToAlu, bVal, () => {
       stopSpecificGlows(['b'])
       processor.movingText = ''
 
-      // Glow ALU before A moves
+      // 2️⃣ Glow ALU
       animateHighlightAndGlow('alu')
 
       setTimeout(() => {
+        // 3️⃣ Glow A then A → ALU
+        loopMultipleComponentGlows(['a'])
         processor.movingText = aVal
         animateMovingText('moving-label', movePaths.aToAlu, aVal, () => {
           stopSpecificGlows(['a'])
           processor.movingText = ''
 
+          // 4️⃣ ALU → A
           setTimeout(() => {
             processor.movingText = result
             animateMovingText('moving-label', movePaths.aluToA, result, () => {
@@ -643,6 +641,23 @@ function handleT5(instruction: string, done: () => void) {
     </div>
   </DialogContent>
 </Dialog>
+
+<Dialog v-model:open="processor.simulationDone">
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle class="text-green-700">Simulation Complete</DialogTitle>
+      <DialogDescription>
+        ✅ All instructions have been processed successfully.
+      </DialogDescription>
+    </DialogHeader>
+    <div class="flex justify-end mt-4">
+      <button class="bg-green-700 text-white px-4 py-2 rounded" @click="processor.simulationDone = false">
+        Close
+      </button>
+    </div>
+  </DialogContent>
+</Dialog>
+
 
 
     </template>

@@ -223,4 +223,11 @@ export function animateHighlightAndGlow(id: string) {
       })
   }
 
+  export function pauseAllComponentGlows() {
+    activeGlows.forEach(tl => tl.pause())
+  }
+
+  export function resumeAllComponentGlows() {
+    activeGlows.forEach(tl => tl.resume())
+  }
 
