@@ -70,6 +70,12 @@ export const movePaths = {
       { x: 525, y: 509 },
 
 
+
+
+    ],
+    outToBd:[
+        { x: 525, y: 509 },
+        { x: 525, y: 525 },
     ]
 
 

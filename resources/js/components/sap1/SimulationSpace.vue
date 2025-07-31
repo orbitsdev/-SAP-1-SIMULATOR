@@ -365,6 +365,7 @@ function handleT3(instruction: string, onComplete: () => void) {
     onComplete()
   })
 }
+
 function handleT4(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode
 
@@ -383,20 +384,18 @@ function handleT4(instruction: string, onComplete: () => void) {
       stopSpecificGlows(['b'])
       processor.movingText = ''
 
-      // ✨ Small delay before A moves
+      // 3️⃣ Glow ALU before A moves
+      animateHighlightAndGlow('alu')
+
       setTimeout(() => {
-        // 3️⃣ Animate A → ALU
+        // 4️⃣ Animate A → ALU
         processor.movingText = aVal
         animateMovingText('moving-label', movePaths.aToAlu, aVal, () => {
           stopSpecificGlows(['a'])
           processor.movingText = ''
 
-          // 4️⃣ Glow ALU
-          animateHighlightAndGlow('alu')
-          console.log('💡 Step 4: ALU activated')
-
+          // 5️⃣ Delay then ALU → A
           setTimeout(() => {
-            // 5️⃣ Animate ALU → A
             processor.movingText = result
             animateMovingText('moving-label', movePaths.aluToA, result, () => {
               stopSpecificGlows(['alu'])
@@ -406,31 +405,35 @@ function handleT4(instruction: string, onComplete: () => void) {
               animateHighlightAndGlow('a')
               processor.movingText = ''
 
-              console.log('➕ Step 5–6: A ← A + B =', result)
+              console.log('➕ T4: A ← A + B =', result)
               onComplete()
             })
-          }, 400) // Slight delay for visual ALU glow effect
-
+          }, 400)
         })
-      }, 300) // Delay before A moves
+      }, 300)
     })
 
-  } else if (opcode === '0010') {
-    // SUB logic can also follow similar pattern if needed
+  } else if (opcode === '0010') { // SUB
     const aVal = getComponentValue('a')
     const bVal = getComponentValue('b')
     const result = binarySub(aVal, bVal)
 
     loopMultipleComponentGlows(['a', 'b'])
     processor.movingText = bVal
+
     animateMovingText('moving-label', movePaths.bToAlu, bVal, () => {
       stopSpecificGlows(['b'])
       processor.movingText = ''
+
+      // Glow ALU before A moves
+      animateHighlightAndGlow('alu')
+
       setTimeout(() => {
         processor.movingText = aVal
         animateMovingText('moving-label', movePaths.aToAlu, aVal, () => {
           stopSpecificGlows(['a'])
-          animateHighlightAndGlow('alu')
+          processor.movingText = ''
+
           setTimeout(() => {
             processor.movingText = result
             animateMovingText('moving-label', movePaths.aluToA, result, () => {
@@ -446,7 +449,7 @@ function handleT4(instruction: string, onComplete: () => void) {
       }, 300)
     })
 
-  } else if (opcode === '1110') {
+  } else if (opcode === '1110') { // OUT
     const aValue = getComponentValue('a')
     loopMultipleComponentGlows(['a', 'out'])
     processor.movingText = aValue
@@ -458,11 +461,11 @@ function handleT4(instruction: string, onComplete: () => void) {
       console.log('📤 T4: OUT ← A =', aValue)
       onComplete()
     })
+
   } else {
     onComplete()
   }
 }
-
 
 
 function getComponentValue(id: string): string {
@@ -613,7 +616,7 @@ function handleT5(instruction: string, done: () => void) {
         :title="c.title"
         :value="c.value"
         :style="{
-            
+
             gridColumnStart: c.col,
             gridRowStart: c.row,
             gridColumnEnd: `span ${c.colSpan}`,
