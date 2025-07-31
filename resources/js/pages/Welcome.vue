@@ -35,16 +35,40 @@ const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null)
 
 
     <div class="flex space-x-4 mt-4" v-if="simRef">
-        <Button variant="default" @click="simRef?.runManualStep()">Manual</Button>
-        <Button variant="default" @click="simRef?.runAuto()">Auto</Button>
-        <Button
-          variant="default"
-          @click="simRef?.togglePause()"
-          :disabled="simRef?.simulationType !== 'auto'"
-        >
-          {{ simRef?.isPaused ? 'Resume' : 'Pause' }}
-        </Button>
-        <Button variant="default" @click="simRef?.resetSimulation()">Reset</Button>
+        <div class="flex space-x-4 mt-4" v-if="simRef">
+  <Button
+    variant="default"
+    @click="simRef?.runManualStep()"
+    :disabled="simRef?.isHalted"
+  >
+    Manual
+  </Button>
+
+  <Button
+    variant="default"
+    @click="simRef?.runAuto()"
+    :disabled="simRef?.isHalted || simRef?.isRunning"
+  >
+    Auto
+  </Button>
+
+  <Button
+    variant="default"
+    @click="simRef?.togglePause()"
+    :disabled="simRef?.simulationType !== 'auto' || simRef?.isHalted"
+  >
+    {{ simRef?.isPaused ? 'Resume' : 'Pause' }}
+  </Button>
+
+  <Button
+    variant="default"
+    @click="simRef?.resetSimulation()"
+    :disabled="!simRef?.isHalted"
+  >
+    Reset
+  </Button>
+</div>
+
     </div>
 
   </main>

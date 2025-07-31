@@ -33,38 +33,39 @@ export function loopMultipleComponentGlows(ids: string[]) {
     activeGlows.set(id, tl)
   })
 }
-
 export function stopSpecificGlows(ids: string[]) {
-  ids.forEach(id => {
-    const el = document.getElementById(id)
-    if (!el) return
+    ids.forEach(id => {
+      const el = document.getElementById(id)
+      if (!el) return
 
-    const tl = activeGlows.get(id)
-    if (tl) {
-      tl.kill()
-      activeGlows.delete(id)
-    }
+      const tl = activeGlows.get(id)
+      if (tl) {
+        tl.kill()
+        activeGlows.delete(id)
+      }
 
-    gsap.set(el, {
-      backgroundColor: '',
-      boxShadow: ''
-    })
-  })
-}
-
-export function stopAllComponentGlows() {
-  activeGlows.forEach((tl, id) => {
-    tl.kill()
-    const el = document.getElementById(id)
-    if (el) {
+      // 🔁 Restore default green background
       gsap.set(el, {
-        backgroundColor: '',
+        backgroundColor: '#86efac',
         boxShadow: ''
       })
-    }
-  })
-  activeGlows.clear()
-}
+    })
+  }
+
+  export function stopAllComponentGlows() {
+    activeGlows.forEach((tl, id) => {
+      tl.kill()
+      const el = document.getElementById(id)
+      if (el) {
+        gsap.set(el, {
+          backgroundColor: '#86efac', // ✅ Restore default
+          boxShadow: ''
+        })
+      }
+    })
+    activeGlows.clear()
+  }
+
 
 export function stopComponentGlow(id: string) {
   const el = document.getElementById(id)
@@ -202,23 +203,24 @@ export function highlightComponent(id: string) {
     .to(el, { backgroundColor: '#fde047', duration: 0.3 })
     .to(el, { backgroundColor: '#86efac', duration: 0.6, delay: 0.2 })
 }
-
 export function animateHighlightAndGlow(id: string) {
-  const el = document.getElementById(id)
-  if (!el) return
+    const el = document.getElementById(id)
+    if (!el) return
 
-  gsap.timeline()
-    .to(el, {
-      backgroundColor: '#fde047', // yellow-300
-      boxShadow: '0 0 20px 8px rgba(253, 224, 71, 0.6)', // soft yellow glow
-      duration: 0.4,
-      ease: 'power2.out'
-    })
-    .to(el, {
-      backgroundColor: '#86efac', // green-300
-      boxShadow: '0 0 0px 0px rgba(253, 224, 71, 0.2)', // fades out smoothly
-      duration: 0.6,
-      ease: 'power2.in',
-      delay: 0.3
-    })
-}
+    gsap.timeline()
+      .to(el, {
+        backgroundColor: '#fde047', // yellow-300
+        boxShadow: '0 0 20px 8px rgba(253, 224, 71, 0.6)', // soft yellow glow
+        duration: 0.4,
+        ease: 'power2.out'
+      })
+      .to(el, {
+        backgroundColor: '#86efac', // green-300
+        boxShadow: '0 0 0px 0px rgba(253, 224, 71, 0.2)', // fades out smoothly
+        duration: 0.6,
+        ease: 'power2.in',
+        delay: 0.3
+      })
+  }
+
+

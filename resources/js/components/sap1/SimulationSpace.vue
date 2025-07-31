@@ -25,6 +25,7 @@
     const simulationType = computed(() => processor.type)
     const isPaused = computed(() => processor.isPaused)
     const isRunning = computed(() => processor.isRunning)
+    const isHalted = computed(() => processor.halted)
 
     const currentDisplayInstruction = computed(() => {
   const bin = program[processor.currentInstruction] || ''
@@ -64,7 +65,8 @@
     togglePause,
     simulationType,
     isPaused,
-    isRunning
+    isRunning,
+    isHalted
     })
 
     const processor = reactive({
@@ -137,28 +139,29 @@ function runManualStep() {
   }
 }
 
-
-
 function isFinished(): boolean {
-  return processor.currentInstruction >= program.length
+  if (processor.currentInstruction >= program.length || processor.halted) {
+    processor.halted = true
+    return true
+  }
+  return false
 }
 
 function stopSimulation() {
-    processor.isRunning = false
+  processor.isRunning = false
   processor.isPaused = false
-  processor.currentStep = 0
-  processor.currentInstruction = 0
-  processor.movingText = ''
-  processor.instruction = ''
-  processor.opcode = ''
-  processor.operand = ''
-  processor.errorMessage = ''
+  processor.halted = true // ✅ mark as halted
+  // ⚠️ Do NOT reset these:
+  // processor.currentInstruction = 0
+  // processor.currentStep = 0
+  // processor.opcode, operand, instruction
 
   stopAllComponentGlows()
   pauseMovingAnimation()
 
-  console.log('🛑 Simulation finished or manually stopped.')
+  console.log('🛑 Simulation stopped (end or manual).')
 }
+
 
 
 function advanceStep() {
@@ -173,11 +176,98 @@ function advanceStep() {
 
 
 
-    function runAuto() {}
+function runAuto() {
+  if (isFinished()) {
+    console.log('🛑 Auto stopped: simulation is finished.')
+    stopSimulation()
+    return
+  }
+
+  processor.isRunning = true
+  processor.isPaused = false
+  processor.type = 'auto' // ✅ set to auto
+
+  const step = processor.currentStep
+  const instruction = program[processor.currentInstruction]
+
+  if (!isValidInstruction(instruction)) {
+    processor.invalidInstructionIndex = processor.currentInstruction
+    processor.showErrorModal = true
+    stopSimulation()
+    return
+  }
+
+  const proceed = () => {
+    processor.currentStep++
+    runAuto() // recursive call for next step
+  }
+
+  const finish = () => {
+    processor.currentInstruction++
+    processor.currentStep = 0
+    runAuto()
+  }
+
+  stopAllComponentGlows()
+  pauseMovingAnimation()
+  processor.movingText = ''
+
+  switch (step) {
+    case 0: handleT0(instruction, proceed); break
+    case 1: handleT1(instruction, proceed); break
+    case 2: handleT2(instruction, proceed); break
+    case 3: handleT3(instruction, proceed); break
+    case 4: handleT4(instruction, () => {
+      if (['0000', '1111'].includes(processor.opcode)) proceed()
+      else processor.currentStep++, runAuto()
+    }); break
+    case 5: handleT5(instruction, finish); break
+  }
+}
+
     function pauseSimulation() {}
     function resumeSimulation() {}
-    function resetSimulation() {}
-    function togglePause() {}
+    function resetSimulation() {
+        processor.type = 'manual' // ✅ reset to default
+  processor.isRunning = false
+  processor.isPaused = false
+  processor.halted = false
+  processor.currentStep = 0
+  processor.currentInstruction = 0
+  processor.opcode = ''
+  processor.operand = ''
+  processor.instruction = ''
+  processor.movingText = ''
+  processor.errorMessage = ''
+  processor.invalidInstructionIndex = -1
+  processor.showErrorModal = false
+
+  stopAllComponentGlows()
+  pauseMovingAnimation()
+
+  // Optional: reset all components' values
+  components.forEach(c => c.value = '00000000')
+
+  console.log('🔄 Simulation fully reset.')
+}
+
+
+function togglePause() {
+  if (!processor.isRunning) return
+
+  processor.isPaused = !processor.isPaused
+
+  if (processor.isPaused) {
+    pauseMovingAnimation()        // ✅ already centralized
+    stopAllComponentGlows()       // optional visual effect
+    console.log('⏸ Simulation Paused')
+  } else {
+    resumeMovingAnimation()       // ✅ already centralized
+    console.log('▶️ Simulation Resumed')
+    runAuto()                     // 🔁 continue auto
+  }
+}
+
 
     // 📊 Instruction Handling
     function handleT0(instruction: string, onComplete: () => void) {
@@ -220,9 +310,8 @@ function handleT1(instruction: string, onComplete: () => void) {
 function handleT2(instruction: string, onComplete: () => void) {
   const operand = processor.operand // 4-bit address
 
-  // 🟡 Increment Program Counter
-  processor.currentInstruction++
-  const newPcValue = processor.currentInstruction.toString(2).padStart(4, '0')
+  // 🟡 Increment Program Counter (the actual PC register)
+  const newPcValue = (processor.currentInstruction + 1).toString(2).padStart(4, '0')
   updateComponentValue('pc', newPcValue)
 
   // ✨ Show PC glow and update
@@ -276,40 +365,90 @@ function handleT3(instruction: string, onComplete: () => void) {
     onComplete()
   })
 }
-
-
 function handleT4(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode
 
   if (opcode === '0001') { // ADD
-    loopMultipleComponentGlows(['a', 'b', 'alu'])
-    const result = binaryAdd(getComponentValue('a'), getComponentValue('b'))
-    processor.movingText = result
+    const aVal = getComponentValue('a')
+    const bVal = getComponentValue('b')
+    const result = binaryAdd(aVal, bVal)
 
-    animateMovingText('moving-label', movePaths.aluToA, result, () => {
-      updateComponentValue('a', result)
-      stopSpecificGlows(['a', 'b', 'alu'])
+    // 1️⃣ Glow A and B
+    loopMultipleComponentGlows(['a', 'b'])
+    console.log('🔆 Step 1: Glow A and B')
+
+    // 2️⃣ Animate B → ALU
+    processor.movingText = bVal
+    animateMovingText('moving-label', movePaths.bToAlu, bVal, () => {
+      stopSpecificGlows(['b'])
       processor.movingText = ''
-      console.log('➕ T4: A ← A + B =', result)
-      onComplete()
+
+      // ✨ Small delay before A moves
+      setTimeout(() => {
+        // 3️⃣ Animate A → ALU
+        processor.movingText = aVal
+        animateMovingText('moving-label', movePaths.aToAlu, aVal, () => {
+          stopSpecificGlows(['a'])
+          processor.movingText = ''
+
+          // 4️⃣ Glow ALU
+          animateHighlightAndGlow('alu')
+          console.log('💡 Step 4: ALU activated')
+
+          setTimeout(() => {
+            // 5️⃣ Animate ALU → A
+            processor.movingText = result
+            animateMovingText('moving-label', movePaths.aluToA, result, () => {
+              stopSpecificGlows(['alu'])
+
+              // 6️⃣ Update A and glow
+              updateComponentValue('a', result)
+              animateHighlightAndGlow('a')
+              processor.movingText = ''
+
+              console.log('➕ Step 5–6: A ← A + B =', result)
+              onComplete()
+            })
+          }, 400) // Slight delay for visual ALU glow effect
+
+        })
+      }, 300) // Delay before A moves
     })
 
-  } else if (opcode === '0010') { // SUB
-    loopMultipleComponentGlows(['a', 'b', 'alu'])
-    const result = binarySub(getComponentValue('a'), getComponentValue('b'))
-    processor.movingText = result
+  } else if (opcode === '0010') {
+    // SUB logic can also follow similar pattern if needed
+    const aVal = getComponentValue('a')
+    const bVal = getComponentValue('b')
+    const result = binarySub(aVal, bVal)
 
-    animateMovingText('moving-label', movePaths.aluToA, result, () => {
-      updateComponentValue('a', result)
-      stopSpecificGlows(['a', 'b', 'alu'])
+    loopMultipleComponentGlows(['a', 'b'])
+    processor.movingText = bVal
+    animateMovingText('moving-label', movePaths.bToAlu, bVal, () => {
+      stopSpecificGlows(['b'])
       processor.movingText = ''
-      console.log('➖ T4: A ← A - B =', result)
-      onComplete()
+      setTimeout(() => {
+        processor.movingText = aVal
+        animateMovingText('moving-label', movePaths.aToAlu, aVal, () => {
+          stopSpecificGlows(['a'])
+          animateHighlightAndGlow('alu')
+          setTimeout(() => {
+            processor.movingText = result
+            animateMovingText('moving-label', movePaths.aluToA, result, () => {
+              stopSpecificGlows(['alu'])
+              updateComponentValue('a', result)
+              animateHighlightAndGlow('a')
+              processor.movingText = ''
+              console.log('➖ T4: A ← A - B =', result)
+              onComplete()
+            })
+          }, 400)
+        })
+      }, 300)
     })
 
-  } else if (opcode === '1110') { // OUT
-    loopMultipleComponentGlows(['a', 'out'])
+  } else if (opcode === '1110') {
     const aValue = getComponentValue('a')
+    loopMultipleComponentGlows(['a', 'out'])
     processor.movingText = aValue
 
     animateMovingText('moving-label', movePaths.aToOut, aValue, () => {
@@ -319,12 +458,11 @@ function handleT4(instruction: string, onComplete: () => void) {
       console.log('📤 T4: OUT ← A =', aValue)
       onComplete()
     })
-
   } else {
-    // LDA / HLT or unknown → skip T4
     onComplete()
   }
 }
+
 
 
 function getComponentValue(id: string): string {
@@ -356,9 +494,12 @@ function handleT5(instruction: string, done: () => void) {
 
   console.log('✅ T5: Instruction cycle complete.')
 
-loopMultipleComponentGlows(['pc', 'mar']) // optional visual feedback
+  // Increment processor.currentInstruction at the end of the cycle
+  processor.currentInstruction++
 
-done()
+  loopMultipleComponentGlows(['pc', 'mar']) // optional visual feedback
+
+  done()
 
 }
 
@@ -472,6 +613,7 @@ done()
         :title="c.title"
         :value="c.value"
         :style="{
+            
             gridColumnStart: c.col,
             gridRowStart: c.row,
             gridColumnEnd: `span ${c.colSpan}`,

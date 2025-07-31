@@ -15,22 +15,23 @@ watch(() => props.value, () => {
   setTimeout(() => animateClass.value = false, 300)
 })
 </script>
-
 <template>
-  <div
-    :id="id"
-    class="w-full h-full border rounded p-1 flex flex-col items-center justify-center text-xs text-center"
-    :style="{
-      backgroundColor: highlight === id ? '#fde047' : '#86efac',
-      transition: 'background-color 0.3s ease'
-    }"
-  >
-    <div class="font-bold">{{ title }}</div>
-    <div class=" font-extrabold  transition-all duration-300" :class="{ 'scale-110 text-blue-800': animateClass }">
-      {{ value }}
+    <div
+      :id="id"
+      class="w-full h-full border rounded p-1 flex flex-col items-center justify-center text-xs text-center"
+      :style="{
+        backgroundColor: highlight === id ? '#fde047' : '#86efac',
+        transition: 'background-color 0.3s ease',
+        opacity: 1, // 💡 Force full opacity
+        zIndex: 1   // 💡 Make sure it sits above the grid and below overlays
+      }"
+    >
+      <div class="font-bold">{{ title }}</div>
+      <div class="font-extrabold transition-all duration-300" :class="{ 'scale-110 text-blue-800': animateClass }">
+        {{ value }}
+      </div>
     </div>
-  </div>
-</template>
+  </template>
 
 <style scoped>
 .scale-110 {
