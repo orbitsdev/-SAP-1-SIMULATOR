@@ -47,11 +47,11 @@
 
 
     const program = [
-    // '00001001', // LDA 09H → A ← M[09]
+    '00001001', // LDA 09H → A ← M[09]
      '00011010', // ADD 0AH → A ← A + M[0A]
-    // '00101100', // SUB 0CH → A ← A - M[0C]
-    // '11100000', // OUT → Output ← A
-    // '11110000'  // HLT → Halt
+    '00101100', // SUB 0CH → A ← A - M[0C]
+    '11100000', // OUT → Output ← A
+    '11110000'  // HLT → Halt
     ]
 
 
@@ -245,7 +245,7 @@ function runAuto() {
   pauseMovingAnimation()
 
   // Optional: reset all components' values
-  components.forEach(c => c.value = '00000000')
+  components.forEach(c => c.value = '')
 
   console.log('🔄 Simulation fully reset.')
 }
@@ -566,17 +566,17 @@ function handleT5(instruction: string, done: () => void) {
     <template>
     <div v-bind="$attrs" class="relative grid grid-cols-16 gap-px w-full h-full"
         style="grid-template-columns: repeat(16, 45px); grid-template-rows: repeat(16, 48px);">
-        <div class="absolute top-2 right-2 z-50 bg-white/90 px-4 py-2 rounded shadow text-sm font-mono">
+         <div class="absolute top-2 right-2 z-50 bg-white/90 px-4 py-2 rounded shadow text-sm font-mono">
   <span class="text-gray-500">Now Running:</span> <span class="font-bold text-blue-700">{{ currentDisplayInstruction }}</span>
 </div>
 
-        <!-- 🧪 Instruction Path Tests -->
-    <div class="absolute top-2 left-2 z-50 flex flex-col gap-2 bg-white/80 p-3 rounded shadow">
 
-    <button @click="testMovePath">Test Move Path</button>
+    <!-- <div class="absolute top-2 left-2 z-50 flex flex-col gap-2 bg-white/80 p-3 rounded shadow">
+
+     <button @click="testMovePath">Test Move Path</button>
 
 
-    </div>
+    </div> -->
 
         <!-- ✨ Floating moving text -->
         <MovingLabel id="moving-label" :text="processor.movingText" />

@@ -10,32 +10,34 @@ const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null)
 </script>
 
 <template>
-  <main class="w-full flex flex-col items-center p-10 space-y-6 overflow-auto">
+  <main class="w-full flex flex-col items-center mt-10  overflow-auto">
 
     <!-- 🧠 Instruction Set Display -->
-    <div class="w-full max-w-2xl">
-      <h2 class="text-lg font-bold text-center mb-2">Instruction Set</h2>
-      <div class="flex justify-center flex-wrap gap-4">
-        <div
-          v-for="ins in instructionSet"
-          :key="ins.binary"
-          class="flex flex-col items-center bg-gray-100 border border-gray-300 rounded px-4 py-2"
-        >
-          <span class="text-sm font-semibold text-gray-800">{{ ins.name }}</span>
-          <span class="font-mono text-blue-600">{{ ins.binary }}</span>
-        </div>
-      </div>
+  <div class="w-full max-w-xl">
+  <h2 class="text-base font-semibold text-center mb-2 text-gray-700">Instruction Set</h2>
+  <div class="flex justify-center flex-wrap gap-2">
+    <div
+      v-for="ins in instructionSet"
+      :key="ins.binary"
+      class="flex flex-col items-center bg-gray-50 border border-gray-300 rounded px-1 py-1 w-20 "
+    >
+      <span class="text-xs font-medium text-gray-700">{{ ins.name }}</span>
+      <span class="font-mono text-blue-600 text-sm">{{ ins.binary }}</span>
     </div>
+  </div>
+</div>
+
+
 
 
     <div class="relative" style="width: 720px; height: 768px;">
-    <GridGuideLine  class="absolute inset-0 z-0"/>
+    <!-- <GridGuideLine  class="absolute inset-0 z-0"/> -->
       <SimulationSpace ref="simRef" class="absolute inset-0 z-10" />
     </div>
 
 
-    <div class="flex space-x-4 mt-4" v-if="simRef">
-        <div class="flex space-x-4 mt-4" v-if="simRef">
+
+        <div class="flex space-x-4 " v-if="simRef">
   <Button
     variant="default"
     @click="simRef?.runManualStep()"
@@ -60,16 +62,16 @@ const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null)
     {{ simRef?.isPaused ? 'Resume' : 'Pause' }}
   </Button>
 
+
   <Button
-    variant="default"
-    @click="simRef?.resetSimulation()"
-    :disabled="!simRef?.isHalted"
-  >
-    Reset
-  </Button>
+  variant="default"
+  @click="simRef?.resetSimulation()"
+>
+  Reset
+</Button>
+
 </div>
 
-    </div>
 
   </main>
 </template>
