@@ -1,6 +1,8 @@
 // fakeMemory.ts
 
-// 16 memory slots: M[0000] to M[1111] (binary 0 to 15 decimal)
+// 16 memory addresses: 0000 to 1111 (binary 0 to 15 decimal)
+// Each stores an 8-bit binary value (00000001 to 00010000)
+
 export const memory: Record<string, string> = {
   '0000': '00000001', // M[0] = 1
   '0001': '00000010', // M[1] = 2
@@ -18,4 +20,4 @@ export const memory: Record<string, string> = {
   '1101': '00001110', // M[13] = 14
   '1110': '00001111', // M[14] = 15
   '1111': '00010000'  // M[15] = 16
-}
+};
