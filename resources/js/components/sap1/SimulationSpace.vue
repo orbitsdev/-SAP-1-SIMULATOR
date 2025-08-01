@@ -1,11 +1,13 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false });
+import { ref } from "vue";
 import Box from "./Box.vue";
 import Bus from "./Bus.vue";
 import Arrow from "./Arrow.vue";
 import MovingLabel from "./MovingLabel.vue";
 import { arrows } from "@/lib/arrows";
 import { components } from "@/lib/components";
+import axios from 'axios'
 import {
   animateHighlightAndGlow,
   animateMovingText,
@@ -36,44 +38,40 @@ const isPaused = computed(() => processor.isPaused);
 const isRunning = computed(() => processor.isRunning);
 const isHalted = computed(() => processor.halted);
 
-const currentDisplayInstruction = computed(() => {
-  const bin = program[processor.currentInstruction] || "";
-  const opcode = bin.slice(0, 4);
-  const operand = bin.slice(4);
+const program = ref<string[]>([])
+const uploadedInstructions = ref<string[]>([]) //
+const hasProgram = ref(false)                  //
 
-  const opcodeNameMap: Record<string, string> = {
-    "0000": "LDA",
-    "0001": "ADD",
-    "0010": "SUB",
-    "1110": "OUT",
-    "1111": "HLT",
-  };
 
-  const name = opcodeNameMap[opcode] || "???";
-  return `${name} ${operand} (${bin})`;
-});
-// const program = [
-//   "00000001", // LDA 01H → A ← M[01] = 2
-//   "00010010", // ADD 02H → A ← A + M[02] = 2 + 3 = 5
-//   "11100000", // OUT → Output A = 5
-//   "11110000", // HLT
-// ];
+function loadProgramFromFile(lines: string[]) {
+  program.value = lines.filter((l: string) => /^[01]{8}$/.test(l.trim()))
+  resetSimulation()
+}
 
-const program = [
-  "00000010", // LDA 02H → A ← M[02] = 3
-  "00100001", // SUB 01H → A ← A - M[01] = 3 - 2 = 1
-  "11100000", // OUT → Output A = 1
-  "11110000", // HLT
-];
 
-// const program = [
-//   "00000011", // LDA 03H → A ← M[03] = 4
-//   "11110000", // HLT → should stop here!
-//   "00010001", // ADD 01H → this should NOT execute
-//   "11100000", // OUT → should not be reached
-// ];
+function isProgramLoaded(): boolean {
+  return program.value.length > 0
+}
+
+
+onMounted(async () => {
+  try {
+    const res = await axios.get('/program-load')
+    if (res.data.exists) {
+      // Load program directly without using uploadedInstructions
+      program.value = res.data.lines.filter((l: string) => /^[01]{8}$/.test(l.trim()))
+      hasProgram.value = true
+    } else {
+      hasProgram.value = false
+    }
+  } catch (e) {
+    console.error('Failed to load program:', e)
+    hasProgram.value = false
+  }
+})
 
 defineExpose({
+    loadProgramFromFile,
   runManualStep,
   runAuto,
   pauseSimulation,
@@ -84,6 +82,7 @@ defineExpose({
   isPaused,
   isRunning,
   isHalted,
+  currentInstruction: computed(() => processor.currentInstruction)
 });
 
 const processor = reactive({
@@ -118,7 +117,7 @@ function runManualStep() {
     return;
   }
 
-  const instruction = program[processor.currentInstruction];
+  const instruction = program.value[processor.currentInstruction];
 
   if (!isValidInstruction(instruction)) {
     processor.invalidInstructionIndex = processor.currentInstruction;
@@ -170,19 +169,19 @@ function runManualStep() {
   }
 }
 function isFinished(): boolean {
-  return processor.currentInstruction >= program.length || processor.halted;
+  return processor.currentInstruction >= program.value.length || processor.halted;
 }
 
 function stopSimulation() {
   processor.isRunning = false;
   processor.isPaused = false;
   processor.halted = true;
-  processor.simulationDone = true; // ✅ trigger the dialog
+  processor.simulationDone = true; //
 
   stopAllComponentGlows();
   pauseMovingAnimation();
 
-  console.log("🛑 Simulation stopped (end or manual).");
+  console.log("");
 }
 
 function advanceStep() {
@@ -196,17 +195,17 @@ function advanceStep() {
 
 function runAuto() {
   if (isFinished()) {
-    console.log("🛑 Auto stopped: simulation is finished.");
+    console.log("");
     stopSimulation();
     return;
   }
 
   processor.isRunning = true;
   processor.isPaused = false;
-  processor.type = "auto"; // ✅ set to auto
+  processor.type = "auto"; //
 
   const step = processor.currentStep;
-  const instruction = program[processor.currentInstruction];
+  const instruction = program.value[processor.currentInstruction];
 
   if (!isValidInstruction(instruction)) {
     processor.invalidInstructionIndex = processor.currentInstruction;
@@ -261,7 +260,7 @@ function runAuto() {
 function pauseSimulation() {}
 function resumeSimulation() {}
 function resetSimulation() {
-  processor.type = "manual"; // ✅ reset to default
+  processor.type = "manual"; //
   processor.isRunning = false;
   processor.isPaused = false;
   processor.halted = false;
@@ -282,7 +281,7 @@ function resetSimulation() {
   // Optional: reset all components' values
   components.forEach((c) => (c.value = ""));
 
-  console.log("🔄 Simulation fully reset.");
+  console.log("");
 }
 function togglePause() {
   if (!processor.isRunning) return;
@@ -291,12 +290,12 @@ function togglePause() {
 
   if (processor.isPaused) {
     pauseMovingAnimation();
-    pauseAllComponentGlows(); // ✅ pause, not stop
-    console.log("⏸ Simulation Paused");
+    pauseAllComponentGlows(); //
+    console.log("");
   } else {
     resumeMovingAnimation();
-    resumeAllComponentGlows(); // ✅ resume glow
-    console.log("▶️ Simulation Resumed");
+    resumeAllComponentGlows(); //
+    console.log("");
 
     if (processor.movingText === "") {
       runAuto();
@@ -304,7 +303,7 @@ function togglePause() {
   }
 }
 
-// 📊 Instruction Handling
+//
 function handleT0(instruction: string, onComplete: () => void) {
   const pcValue = processor.currentInstruction.toString(2).padStart(4, "0");
 
@@ -317,14 +316,14 @@ function handleT0(instruction: string, onComplete: () => void) {
     stopSpecificGlows(["pc", "mar"]);
     processor.movingText = "";
 
-    console.log("📦 T0: PC → MAR | value:", pcValue);
+    console.log("");
 
-    onComplete(); // ✅ advance step after animation ends
+    onComplete(); //
   });
 }
 
 function handleT1(instruction: string, onComplete: () => void) {
-  const instructionAtMar = program[processor.currentInstruction]; // 8-bit binary
+  const instructionAtMar = program.value[processor.currentInstruction]; // 8-bit binary
 
   updateComponentValue("prom", instructionAtMar);
 loopMultipleComponentGlows(["prom", "ir", ]);
@@ -339,10 +338,11 @@ loopMultipleComponentGlows(["prom", "ir", ]);
     // Extract and store opcode + operand
     setInstruction(instructionAtMar);
 
-    console.log("📥 T1: PROM → IR:", instructionAtMar);
-    onComplete(); // ✅ go to T2 after animation
+    console.log("");
+    onComplete(); //
   });
 }
+
 function handleT2(instruction: string, onComplete: () => void) {
   const operand = processor.operand;
 
@@ -350,7 +350,7 @@ function handleT2(instruction: string, onComplete: () => void) {
   updateComponentValue("pc", newPcValue);
   loopMultipleComponentGlows(["pc"]);
 
-  // ✅ Correct glow for IR → MAR
+  //
   loopMultipleComponentGlows(["ir", "mar", ]);
 
   processor.movingText = operand;
@@ -360,8 +360,8 @@ function handleT2(instruction: string, onComplete: () => void) {
     stopSpecificGlows(["ir", "mar", "pc"]);
     processor.movingText = "";
 
-    console.log("📨 T2: IR(operand) → MAR | operand:", operand);
-    console.log("📈 PC incremented to:", newPcValue);
+    console.log("");
+    console.log("");
 
     onComplete();
   });
@@ -371,7 +371,7 @@ function handleT3(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode;
   const operand = processor.operand;
 
-  const fakeMemoryValue = memory[operand] || "00000000"; // ✅ use memory lookup
+  const fakeMemoryValue = memory[operand] || "00000000"; //
 
   let target = "";
   let path;
@@ -397,8 +397,7 @@ loopMultipleComponentGlows(["prom", target, ]);
     processor.movingText = "";
 
     console.log(
-      `📥 T3: M[${operand}] → ${target.toUpperCase()} | value:`,
-      fakeMemoryValue
+      ``
     );
     onComplete();
   });
@@ -413,7 +412,7 @@ function handleT4(instruction: string, onComplete: () => void) {
     const bVal = getComponentValue("b");
     const result = binaryAdd(aVal, bVal);
 
-    // 1️⃣ Glow B only (B → ALU)
+    // 1
 loopMultipleComponentGlows(["b", ]);
 
 
@@ -422,18 +421,18 @@ loopMultipleComponentGlows(["b", ]);
       stopSpecificGlows(["b"]);
       processor.movingText = "";
 
-      // 2️⃣ Glow ALU before A → ALU
+      // 2
       animateHighlightAndGlow("alu");
 
       setTimeout(() => {
-        // 3️⃣ Glow A then A → ALU
-        loopMultipleComponentGlows(["a"]); // ✨ only now
+        // 3
+        loopMultipleComponentGlows(["a"]); //
         processor.movingText = aVal;
         animateMovingText("moving-label", movePaths.aToAlu, aVal, () => {
           stopSpecificGlows(["a"]);
           processor.movingText = "";
 
-          // 4️⃣ ALU → A
+          // 4
           setTimeout(() => {
             processor.movingText = result;
             animateMovingText("moving-label", movePaths.aluToA, result, () => {
@@ -441,7 +440,7 @@ loopMultipleComponentGlows(["b", ]);
               updateComponentValue("a", result);
               animateHighlightAndGlow("a");
               processor.movingText = "";
-              console.log("➕ T4: A ← A + B =", result);
+              console.log("=");
               onComplete();
             });
           }, 400);
@@ -454,25 +453,25 @@ loopMultipleComponentGlows(["b", ]);
     const bVal = getComponentValue("b");
     const result = binarySub(aVal, bVal);
 
-    // 1️⃣ Glow B only
+    // 1
   loopMultipleComponentGlows(["b", ]);
     processor.movingText = bVal;
     animateMovingText("moving-label", movePaths.bToAlu, bVal, () => {
       stopSpecificGlows(["b"]);
       processor.movingText = "";
 
-      // 2️⃣ Glow ALU
+      // 2
       animateHighlightAndGlow("alu");
 
       setTimeout(() => {
-        // 3️⃣ Glow A then A → ALU
+        // 3
         loopMultipleComponentGlows(["a"]);
         processor.movingText = aVal;
         animateMovingText("moving-label", movePaths.aToAlu, aVal, () => {
           stopSpecificGlows(["a"]);
           processor.movingText = "";
 
-          // 4️⃣ ALU → A
+          // 4
           setTimeout(() => {
             processor.movingText = result;
             animateMovingText("moving-label", movePaths.aluToA, result, () => {
@@ -480,7 +479,7 @@ loopMultipleComponentGlows(["b", ]);
               updateComponentValue("a", result);
               animateHighlightAndGlow("a");
               processor.movingText = "";
-              console.log("➖ T4: A ← A - B =", result);
+              console.log("-");
               onComplete();
             });
           }, 400);
@@ -495,10 +494,10 @@ loopMultipleComponentGlows(["b", ]);
 
     animateMovingText("moving-label", movePaths.aToOut, aValue, () => {
       updateComponentValue("out", aValue);
-      updateComponentValue("bd", aValue); // ✅ OUT ← A
+      updateComponentValue("bd", aValue); //
       stopSpecificGlows(["a", "out"]);
       processor.movingText = "";
-      console.log("📤 T4: OUT ← A =", aValue);
+      console.log("");
       onComplete();
     });
   } else {
@@ -524,27 +523,21 @@ function handleT5(instruction: string, done: () => void) {
   const opcode = processor.opcode;
 
   if (opcode === "1111") {
-    console.log("🛑 T5: HLT encountered — Halting Simulation");
+    console.log("");
     processor.halted = true;
     stopSimulation();
-    return; // ✅ Do not call done() — we stop here.
+    return; //
   }
 
-  console.log("✅ T5: Instruction cycle complete.");
+  console.log("");
  loopMultipleComponentGlows(["pc", "mar", ]);
 
-  done(); // ✅ Let runAuto() or runManualStep() decide if they want to increment.
+  done(); //
 }
 
 
-// 📊 Simulation Control
+//
 
-function getCurrentOpcode() {}
-function getOperand() {}
-function parseInstruction() {}
-function binaryToDecimal() {}
-function decimalToBinary() {}
-function logInstructionDetails() {}
 
 function setInstruction(bin: string) {
   if (!isValidInstruction(bin)) {
@@ -568,10 +561,10 @@ function updateComponentValue(id: string, value: string) {
   if (comp) comp.value = value;
 }
 
-// ✅ TEST PC → MAR
+//
 function testMovePath() {
   const binary = processor.currentInstruction.toString(2).padStart(4, "0");
-  console.log("🧪 PC to MAR →", binary);
+  console.log("");
 
   processor.movingText = binary;
   updateComponentValue("prom", binary);
@@ -592,12 +585,12 @@ function testMovePath() {
     class="relative grid grid-cols-16 gap-px w-full h-full"
     style="grid-template-columns: repeat(16, 45px); grid-template-rows: repeat(16, 48px)"
   >
-    <div
+    <!-- <div
       class="absolute top-2 right-2 z-50 bg-white/90 px-4 py-2 rounded shadow text-sm font-mono"
     >
       <span class="text-gray-500">Now Running:</span>
-      <span class="font-bold text-blue-700">{{ currentDisplayInstruction }}</span>
-    </div>
+      <span class="font-bold text-blue-700">{{ processor.instruction }}</span>
+    </div> -->
 
     <!-- <div class="absolute top-2 left-2 z-50 flex flex-col gap-2 bg-white/80 p-3 rounded shadow">
 
@@ -606,10 +599,10 @@ function testMovePath() {
 
     </div> -->
 
-    <!-- ✨ Floating moving text -->
+    <!--  -->
     <MovingLabel id="moving-label" :text="processor.movingText" />
 
-    <!-- 🔁 Arrows -->
+    <!--  -->
     <Arrow
       v-for="(arrow, index) in arrows"
       :key="index"
@@ -622,7 +615,7 @@ function testMovePath() {
       :headSize="arrow.headSize"
     />
 
-    <!-- 🚌 Bus in center -->
+    <!--  -->
     <div
       :style="{
         gridColumnStart: 7,
@@ -634,7 +627,7 @@ function testMovePath() {
       <Bus title="8" />
     </div>
 
-    <!-- 🧱 Components -->
+    <!--  -->
     <Box
       v-for="c in components"
       :key="c.id"
@@ -676,7 +669,7 @@ function testMovePath() {
       <DialogHeader>
         <DialogTitle class="text-green-700">Simulation Complete</DialogTitle>
         <DialogDescription>
-          ✅ All instructions have been processed successfully.
+          All instructions have been processed successfully.
         </DialogDescription>
       </DialogHeader>
       <div class="flex justify-end mt-4">
