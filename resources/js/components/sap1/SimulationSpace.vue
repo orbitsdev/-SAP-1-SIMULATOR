@@ -52,13 +52,27 @@ const currentDisplayInstruction = computed(() => {
   const name = opcodeNameMap[opcode] || "???";
   return `${name} ${operand} (${bin})`;
 });
-
 const program = [
-  "00000001", // LDA 01H → A ← M[01] = 00000001
-  "11110000", // HLTm
-  "00010010", // ADD 02H → A ← A + M[02] = 00000001 + 00000001
-  "11100000", // OUT
+  "00000001", // LDA 01H → A ← M[01] = 2
+  "00010010", // ADD 02H → A ← A + M[02] = 2 + 3 = 5
+  "11100000", // OUT → Output A = 5
+  "11110000", // HLT
 ];
+
+// const program = [
+//   "00000010", // LDA 02H → A ← M[02] = 3
+//   "00100001", // SUB 01H → A ← A - M[01] = 3 - 2 = 1
+//   "11100000", // OUT → Output A = 1
+//   "11110000", // HLT
+// ];
+
+// const program = [
+//   "00000011", // LDA 03H → A ← M[03] = 4
+//   "11110000", // HLT → should stop here!
+//   "00010001", // ADD 01H → this should NOT execute
+//   "11100000", // OUT → should not be reached
+// ];
+
 defineExpose({
   runManualStep,
   runAuto,
@@ -295,7 +309,7 @@ function handleT0(instruction: string, onComplete: () => void) {
   const pcValue = processor.currentInstruction.toString(2).padStart(4, "0");
 
   updateComponentValue("pc", pcValue);
-  loopMultipleComponentGlows(["pc", "mar"]);
+  loopMultipleComponentGlows(["pc", "mar", "con"]);
 
   processor.movingText = pcValue;
   animateMovingText("moving-label", movePaths.pcToMar, pcValue, () => {
@@ -313,7 +327,8 @@ function handleT1(instruction: string, onComplete: () => void) {
   const instructionAtMar = program[processor.currentInstruction]; // 8-bit binary
 
   updateComponentValue("prom", instructionAtMar);
-  loopMultipleComponentGlows(["prom", "ir"]);
+loopMultipleComponentGlows(["prom", "ir", "con"]);
+
 
   processor.movingText = instructionAtMar;
   animateMovingText("moving-label", movePaths.promToIr, instructionAtMar, () => {
@@ -339,7 +354,8 @@ function handleT2(instruction: string, onComplete: () => void) {
   loopMultipleComponentGlows(["pc"]);
 
   // Animate IR → MAR
-  loopMultipleComponentGlows(["ir", "mar"]);
+ loopMultipleComponentGlows(["prom", "ir", "con"]);
+
   processor.movingText = operand;
 
   animateMovingText("moving-label", movePaths.irToMar, operand, () => {
@@ -375,7 +391,7 @@ function handleT3(instruction: string, onComplete: () => void) {
     return;
   }
 
-  loopMultipleComponentGlows(["prom", target]);
+loopMultipleComponentGlows(["prom", target, "con"]);
   processor.movingText = fakeMemoryValue;
 
   animateMovingText("moving-label", path, fakeMemoryValue, () => {
@@ -401,7 +417,9 @@ function handleT4(instruction: string, onComplete: () => void) {
     const result = binaryAdd(aVal, bVal);
 
     // 1️⃣ Glow B only (B → ALU)
-    loopMultipleComponentGlows(["b"]);
+loopMultipleComponentGlows(["b", "con"]);
+
+
     processor.movingText = bVal;
     animateMovingText("moving-label", movePaths.bToAlu, bVal, () => {
       stopSpecificGlows(["b"]);
@@ -440,7 +458,7 @@ function handleT4(instruction: string, onComplete: () => void) {
     const result = binarySub(aVal, bVal);
 
     // 1️⃣ Glow B only
-    loopMultipleComponentGlows(["b"]);
+  loopMultipleComponentGlows(["b", "con"]);
     processor.movingText = bVal;
     animateMovingText("moving-label", movePaths.bToAlu, bVal, () => {
       stopSpecificGlows(["b"]);
@@ -475,7 +493,7 @@ function handleT4(instruction: string, onComplete: () => void) {
   } else if (opcode === "1110") {
     // OUT
     const aValue = getComponentValue("a");
-    loopMultipleComponentGlows(["a", "out"]);
+     loopMultipleComponentGlows(["a", "out", "con"]);
     processor.movingText = aValue;
 
     animateMovingText("moving-label", movePaths.aToOut, aValue, () => {
@@ -516,7 +534,8 @@ function handleT5(instruction: string, done: () => void) {
   }
 
   console.log("✅ T5: Instruction cycle complete.");
-  loopMultipleComponentGlows(["pc", "mar"]);
+ loopMultipleComponentGlows(["pc", "mar", "con"]);
+
   done(); // ✅ Let runAuto() or runManualStep() decide if they want to increment.
 }
 
