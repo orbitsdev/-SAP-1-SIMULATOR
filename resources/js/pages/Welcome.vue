@@ -16,6 +16,14 @@ const errorMessage = ref('')
 
 const hasProgram = computed(() => uploadedInstructions.value.length > 0)
 
+// Function to get instruction name from binary code
+function getInstructionName(binary: string): string {
+  if (!binary || binary.length < 4) return 'UNKNOWN'
+  const opcode = binary.slice(0, 4)
+  const instruction = instructionSet.find(ins => ins.binary === opcode)
+  return instruction ? instruction.name : 'UNKNOWN'
+}
+
 async function deleteProgram() {
   try {
     const response = await axios.delete('/program-delete')
@@ -94,11 +102,11 @@ onMounted(fetchSavedProgram)
       :class="[
         'font-mono text-sm px-3 py-1.5 border rounded transition-colors',
         simRef?.currentInstruction === index
-          ? 'bg-[#86efac] border-[#86efac] font-bold text-gray-800'
+          ? 'active-instruction  font-bold text-gray-800 '
           : 'bg-gray-50 border-gray-200 text-gray-700'
       ]"
     >
-      {{ index.toString().padStart(2, '0') }}: {{ line }}
+    {{ index.toString().padStart(1, '0') }}: {{ getInstructionName(line) }} - {{ line }}
     </div>
   </div>
   <p v-else class="text-sm text-gray-500 mt-2 bg-gray-50 p-4 rounded ">

@@ -189,3 +189,35 @@ html {
     transition: top 2.8s ease, left 2.8s ease;
   }
 
+  .active-instruction {
+    position: relative;
+    background: #4ade80 !important;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .active-instruction::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(90deg,
+      rgba(74, 222, 128, 0.7) 0%,
+      rgba(134, 239, 172, 1) 25%,
+      rgba(74, 222, 128, 0.7) 50%,
+      rgba(134, 239, 172, 1) 75%,
+      rgba(74, 222, 128, 0.7) 100%);
+    z-index: -1;
+    animation: gradient-move 3s linear infinite;
+  }
+
+  @keyframes gradient-move {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(50%);
+    }
+  }
