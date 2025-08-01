@@ -6,6 +6,7 @@ import UploadModal from '../components/sap1/UploadModal.vue'
 import { Button } from '@/components/ui/button'
 import { instructionSet } from '@/lib/instructions'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import GridGuideLine from '../components/sap1/GridGuideLine.vue'
 
 const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null)
 const uploadDialogOpen = ref(false)
@@ -37,7 +38,7 @@ async function fetchSavedProgram() {
   } catch (err: any) {
     console.warn('No program file found.')
     if (err.response?.status === 404) {
-      showError('No program file found. Please upload a program_instructions.txt file.')
+    //   showError('No program file found. Please upload a program_instructions.txt file.')
     } else if (err.response?.data?.error) {
       showError(err.response.data.error)
     }
@@ -48,53 +49,67 @@ onMounted(fetchSavedProgram)
 </script>
 
 <template>
-  <main class="grid grid-cols-3 gap-4 p-6">
+  <main class="grid grid-cols-6  max-w-7xl mx-auto mt-2 p-8">
 
 <!-- 🧾 Instruction List Panel -->
-<section class="bg-gray-50 border border-gray-200 rounded p-4">
-  <h2 class="text-base font-semibold mb-2 text-gray-800">Loaded Instructions</h2>
-  <div v-if="hasProgram" class="space-y-1">
+<!-- 🧾 Instruction Panel -->
+<section class="b rounded-lg p-6  w-full max-w-2xl space-y-6 col-span-2 ">
+
+<!-- 🔹 Loaded Instructions -->
+<div>
+  <h2 class="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2 uppercase">
+    <span></span> Loaded Instructions
+  </h2>
+
+  <div v-if="hasProgram" class="space-y-1 max-h-64 overflow-y-auto pr-1">
     <div
       v-for="(line, index) in uploadedInstructions"
       :key="index"
       :class="[
-        'font-mono text-sm px-2 py-1 border rounded transition-all',
+        'font-mono text-sm px-3 py-1.5 border rounded transition-colors',
         simRef?.currentInstruction === index
-          ? 'bg-yellow-100 border-yellow-400'
-          : 'bg-white border-gray-200'
+          ? 'bg-[#86efac] border-[#86efac] font-bold text-gray-800'
+          : 'bg-gray-50 border-gray-200 text-gray-700'
       ]"
     >
       {{ index.toString().padStart(2, '0') }}: {{ line }}
     </div>
   </div>
-  <p v-else class="text-sm text-gray-500">
-    No program loaded. Please upload a <code>program_instructions.txt</code> file.
+  <p v-else class="text-sm text-gray-500 mt-2">
+     No program loaded. Please upload a <code class="font-mono">program_instructions.txt</code> file.
   </p>
+</div>
+
+<!-- 🔸 Instruction Set Reference -->
+<div>
+  <h2 class="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2 uppercase">
+    <span></span> Instruction Set Reference
+  </h2>
+  <div class="flex flex-wrap gap-2">
+    <div
+      v-for="ins in instructionSet"
+      :key="ins.binary"
+      class="flex flex-col items-center bg-gray-100 border border-gray-300 rounded px-3 py-2 w-24 text-center"
+    >
+      <span class="text-xs font-semibold text-gray-700 uppercase">{{ ins.name }}</span>
+      <span class="font-mono text-blue-600 text-sm tracking-widest">{{ ins.binary }}</span>
+    </div>
+  </div>
+</div>
+
 </section>
 
 
 
-    <!-- 🖥️ Simulation + Controls -->
-    <section class="col-span-2 w-full flex flex-col items-center overflow-auto">
 
-      <!-- Instruction Set Reference -->
-      <div class="w-full max-w-xl mb-4">
-        <h2 class="text-base font-semibold text-center mb-2 text-gray-700">Instruction Set</h2>
-        <div class="flex justify-center flex-wrap gap-2">
-          <div
-            v-for="ins in instructionSet"
-            :key="ins.binary"
-            class="flex flex-col items-center bg-gray-50 border border-gray-300 rounded px-1 py-1 w-20"
-          >
-            <span class="text-xs font-medium text-gray-700">{{ ins.name }}</span>
-            <span class="font-mono text-blue-600 text-sm">{{ ins.binary }}</span>
-          </div>
-        </div>
-      </div>
+    <!-- 🖥️ Simulation + Controls -->
+    <section class="col-span-4 w-full flex flex-col items-center overflow-auto">
+
+
 
       <!-- Simulation Canvas -->
       <div class="relative mb-6" style="width: 720px; height: 768px;">
-        <!-- <GridGuideLine class="absolute inset-0 z-0" /> -->
+        <GridGuideLine class="absolute inset-0 z-0" />
         <SimulationSpace ref="simRef" class="absolute inset-0 z-10" />
       </div>
 
