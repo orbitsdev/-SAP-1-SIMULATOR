@@ -8,8 +8,9 @@
     import { components } from '@/lib/components'
     import { animateHighlightAndGlow, animateMovingText, loopMultipleComponentGlows, stopSpecificGlows, stopAllComponentGlows, pauseMovingAnimation, resumeMovingAnimation, pauseAllComponentGlows, resumeAllComponentGlows } from '@/lib/animation'
     import { nextTick, reactive, onMounted, computed } from 'vue'
-    import { defineExpose } from 'vue'
+
     import { movePaths } from '@/lib/movePaths'
+    import { memory } from '@/lib/fakeMemory'
 
     import {
   Dialog,
@@ -45,14 +46,13 @@
 })
 
 
+const program = [
+  '00000001', // LDA 01H → A ← M[01] = 00000001
+  '00010010', // ADD 02H → A ← A + M[02] = 00000001 + 00000001
+  '11100000', // OUT
+  '11110000'  // HLT
+]
 
-    const program = [
-    '00001001',
-     '00011010',
-    '00101100',
-    '11100000',
-    '11110000'
-    ]
 
 
 
@@ -337,7 +337,8 @@ function handleT3(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode
   const operand = processor.operand
 
-  const fakeMemoryValue = operand
+  const fakeMemoryValue = memory[operand] || '00000000' // ✅ use memory lookup
+
   let target = ''
   let path
 
@@ -365,6 +366,7 @@ function handleT3(instruction: string, onComplete: () => void) {
     onComplete()
   })
 }
+
 function handleT4(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode
 
@@ -446,20 +448,21 @@ function handleT4(instruction: string, onComplete: () => void) {
       }, 300)
     })
 
-  } else if (opcode === '1110') { // OUT
-    const aValue = getComponentValue('a')
-    loopMultipleComponentGlows(['a', 'out'])
-    processor.movingText = aValue
+ } else if (opcode === '1110') { // OUT
+  const aValue = getComponentValue('a')
+  loopMultipleComponentGlows(['a', 'out'])
+  processor.movingText = aValue
 
-    animateMovingText('moving-label', movePaths.aToOut, aValue, () => {
-      updateComponentValue('out', aValue)
-      stopSpecificGlows(['a', 'out'])
-      processor.movingText = ''
-      console.log('📤 T4: OUT ← A =', aValue)
-      onComplete()
-    })
-
-  } else {
+  animateMovingText('moving-label', movePaths.aToOut, aValue, () => {
+    updateComponentValue('out', aValue)
+    updateComponentValue('bd', aValue)    // ✅ OUT ← A
+    stopSpecificGlows(['a', 'out'])
+    processor.movingText = ''
+    console.log('📤 T4: OUT ← A =', aValue)
+    onComplete()
+  })
+}
+ else {
     onComplete()
   }
 }
