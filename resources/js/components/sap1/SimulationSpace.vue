@@ -52,19 +52,19 @@ const currentDisplayInstruction = computed(() => {
   const name = opcodeNameMap[opcode] || "???";
   return `${name} ${operand} (${bin})`;
 });
-const program = [
-  "00000001", // LDA 01H → A ← M[01] = 2
-  "00010010", // ADD 02H → A ← A + M[02] = 2 + 3 = 5
-  "11100000", // OUT → Output A = 5
-  "11110000", // HLT
-];
-
 // const program = [
-//   "00000010", // LDA 02H → A ← M[02] = 3
-//   "00100001", // SUB 01H → A ← A - M[01] = 3 - 2 = 1
-//   "11100000", // OUT → Output A = 1
+//   "00000001", // LDA 01H → A ← M[01] = 2
+//   "00010010", // ADD 02H → A ← A + M[02] = 2 + 3 = 5
+//   "11100000", // OUT → Output A = 5
 //   "11110000", // HLT
 // ];
+
+const program = [
+  "00000010", // LDA 02H → A ← M[02] = 3
+  "00100001", // SUB 01H → A ← A - M[01] = 3 - 2 = 1
+  "11100000", // OUT → Output A = 1
+  "11110000", // HLT
+];
 
 // const program = [
 //   "00000011", // LDA 03H → A ← M[03] = 4
@@ -309,7 +309,7 @@ function handleT0(instruction: string, onComplete: () => void) {
   const pcValue = processor.currentInstruction.toString(2).padStart(4, "0");
 
   updateComponentValue("pc", pcValue);
-  loopMultipleComponentGlows(["pc", "mar", "con"]);
+  loopMultipleComponentGlows(["pc", "mar", ]);
 
   processor.movingText = pcValue;
   animateMovingText("moving-label", movePaths.pcToMar, pcValue, () => {
@@ -327,7 +327,7 @@ function handleT1(instruction: string, onComplete: () => void) {
   const instructionAtMar = program[processor.currentInstruction]; // 8-bit binary
 
   updateComponentValue("prom", instructionAtMar);
-loopMultipleComponentGlows(["prom", "ir", "con"]);
+loopMultipleComponentGlows(["prom", "ir", ]);
 
 
   processor.movingText = instructionAtMar;
@@ -344,24 +344,20 @@ loopMultipleComponentGlows(["prom", "ir", "con"]);
   });
 }
 function handleT2(instruction: string, onComplete: () => void) {
-  const operand = processor.operand; // 4-bit address
+  const operand = processor.operand;
 
-  // 🟡 Increment Program Counter (the actual PC register)
   const newPcValue = (processor.currentInstruction + 1).toString(2).padStart(4, "0");
   updateComponentValue("pc", newPcValue);
-
-  // ✨ Show PC glow and update
   loopMultipleComponentGlows(["pc"]);
 
-  // Animate IR → MAR
- loopMultipleComponentGlows(["prom", "ir", "con"]);
+  // ✅ Correct glow for IR → MAR
+  loopMultipleComponentGlows(["ir", "mar", ]);
 
   processor.movingText = operand;
 
   animateMovingText("moving-label", movePaths.irToMar, operand, () => {
     updateComponentValue("mar", operand);
-
-    stopSpecificGlows(["ir", "mar", "pc"]); // Stop all glows together
+    stopSpecificGlows(["ir", "mar", "pc"]);
     processor.movingText = "";
 
     console.log("📨 T2: IR(operand) → MAR | operand:", operand);
@@ -370,6 +366,7 @@ function handleT2(instruction: string, onComplete: () => void) {
     onComplete();
   });
 }
+
 function handleT3(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode;
   const operand = processor.operand;
@@ -391,7 +388,7 @@ function handleT3(instruction: string, onComplete: () => void) {
     return;
   }
 
-loopMultipleComponentGlows(["prom", target, "con"]);
+loopMultipleComponentGlows(["prom", target, ]);
   processor.movingText = fakeMemoryValue;
 
   animateMovingText("moving-label", path, fakeMemoryValue, () => {
@@ -417,7 +414,7 @@ function handleT4(instruction: string, onComplete: () => void) {
     const result = binaryAdd(aVal, bVal);
 
     // 1️⃣ Glow B only (B → ALU)
-loopMultipleComponentGlows(["b", "con"]);
+loopMultipleComponentGlows(["b", ]);
 
 
     processor.movingText = bVal;
@@ -458,7 +455,7 @@ loopMultipleComponentGlows(["b", "con"]);
     const result = binarySub(aVal, bVal);
 
     // 1️⃣ Glow B only
-  loopMultipleComponentGlows(["b", "con"]);
+  loopMultipleComponentGlows(["b", ]);
     processor.movingText = bVal;
     animateMovingText("moving-label", movePaths.bToAlu, bVal, () => {
       stopSpecificGlows(["b"]);
@@ -493,7 +490,7 @@ loopMultipleComponentGlows(["b", "con"]);
   } else if (opcode === "1110") {
     // OUT
     const aValue = getComponentValue("a");
-     loopMultipleComponentGlows(["a", "out", "con"]);
+     loopMultipleComponentGlows(["a", "out", ]);
     processor.movingText = aValue;
 
     animateMovingText("moving-label", movePaths.aToOut, aValue, () => {
@@ -534,7 +531,7 @@ function handleT5(instruction: string, done: () => void) {
   }
 
   console.log("✅ T5: Instruction cycle complete.");
- loopMultipleComponentGlows(["pc", "mar", "con"]);
+ loopMultipleComponentGlows(["pc", "mar", ]);
 
   done(); // ✅ Let runAuto() or runManualStep() decide if they want to increment.
 }
