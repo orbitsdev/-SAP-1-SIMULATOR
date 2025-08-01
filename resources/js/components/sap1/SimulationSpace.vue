@@ -70,6 +70,8 @@ onMounted(async () => {
   }
 })
 
+
+
 defineExpose({
     loadProgramFromFile,
   runManualStep,
@@ -122,6 +124,8 @@ function runManualStep() {
   if (!isValidInstruction(instruction)) {
     processor.invalidInstructionIndex = processor.currentInstruction;
     processor.showErrorModal = true;
+    processor.halted = true; // Explicitly halt the simulation
+    stopSimulation();
     return;
   }
 

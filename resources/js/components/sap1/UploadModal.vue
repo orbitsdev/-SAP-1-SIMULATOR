@@ -9,6 +9,7 @@ import axios from 'axios'
 const showDialog = defineModel<boolean>('open')
 const fileInput = ref<File | null>(null)
 const error = ref<string | null>(null)
+const isUploading = ref<boolean>(false)
 const emit = defineEmits<{
   success: [lines: string[]],
   error: [message: string]
@@ -36,8 +37,7 @@ function handleFileChange(e: Event) {
 
 async function handleFileUpload() {
   if (!fileInput.value) {
-    error.value = 'Please select a file first.'
-    emit('error', 'Please select a file first.')
+    error.value = 'Please select a file first'
     return
   }
 
@@ -45,29 +45,31 @@ async function handleFileUpload() {
   formData.append('program_file', fileInput.value)
 
   try {
+    error.value = ''
+    isUploading.value = true
     const response = await axios.post('/upload-program', formData)
-    showDialog.value = false
 
-    // Use the lines directly from the upload response if available
-    if (response.data.lines) {
-      emit('success', response.data.lines)
-    } else {
-      // Fallback to loading program if lines not in response
-      const res = await axios.get('/program-load')
-      if (res.data.exists) {
-        emit('success', res.data.lines)
-      } else {
-        emit('error', 'No program instructions found after upload.')
-      }
+    if (response.data?.error) {
+      error.value = response.data.error
+      emit('error', response.data.error)
+      return
+    }
+
+    if (response.data.instructions) {
+      emit('success', response.data.instructions)
+      showDialog.value = false
     }
   } catch (err: any) {
+    console.error('Upload error:', err)
     if (err.response?.data?.error) {
       error.value = err.response.data.error
       emit('error', err.response.data.error)
     } else {
-      error.value = 'Upload failed.'
-      emit('error', 'Upload failed: ' + (err.message || 'Unknown error'))
+      error.value = 'Failed to upload file'
+      emit('error', 'Failed to upload file')
     }
+  } finally {
+    isUploading.value = false
   }
 }
 </script>
@@ -85,8 +87,8 @@ async function handleFileUpload() {
       <p v-if="error" class="text-red-500 text-sm mt-2">{{ error }}</p>
 
       <div class="mt-4 flex justify-end">
-        <Button variant="default" @click="handleFileUpload">
-          Upload
+        <Button variant="default" :disabled="isUploading" @click="handleFileUpload">
+          {{ isUploading ? 'Uploading...' : 'Upload' }}
         </Button>
       </div>
     </DialogContent>

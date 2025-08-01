@@ -16,6 +16,28 @@ const errorMessage = ref('')
 
 const hasProgram = computed(() => uploadedInstructions.value.length > 0)
 
+async function deleteProgram() {
+  try {
+    const response = await axios.delete('/program-delete')
+    if (response.data?.success) {
+      uploadedInstructions.value = []
+      simRef.value?.resetSimulation()
+      // Reset program in simulation space
+      simRef.value?.loadProgramFromFile([])
+      showError('Program file deleted successfully.')
+    } else {
+      showError('Failed to delete program file.')
+    }
+  } catch (err: any) {
+    console.error('Delete error:', err)
+    if (err.response?.data?.error) {
+      showError(err.response.data.error)
+    } else {
+      showError('Failed to delete program file.')
+    }
+  }
+}
+
 function handleUploadSuccess(lines: string[]) {
   uploadedInstructions.value = lines
   // Only pass valid 8-bit binary instructions to the simulation
@@ -45,6 +67,10 @@ async function fetchSavedProgram() {
   }
 }
 
+
+
+
+
 onMounted(fetchSavedProgram)
 </script>
 
@@ -61,7 +87,7 @@ onMounted(fetchSavedProgram)
     <span></span> Loaded Instructions
   </h2>
 
-  <div v-if="hasProgram" class="space-y-1 max-h-64 overflow-y-auto pr-1">
+  <div v-if="hasProgram" class="space-y-1 max-h-64 overflow-y-auto pr-1 ">
     <div
       v-for="(line, index) in uploadedInstructions"
       :key="index"
@@ -75,9 +101,18 @@ onMounted(fetchSavedProgram)
       {{ index.toString().padStart(2, '0') }}: {{ line }}
     </div>
   </div>
-  <p v-else class="text-sm text-gray-500 mt-2">
+  <p v-else class="text-sm text-gray-500 mt-2 bg-gray-50 p-4 rounded ">
      No program loaded. Please upload a <code class="font-mono">program_instructions.txt</code> file.
   </p>
+</div>
+<div class="flex gap-2">
+
+    <Button v-if="hasProgram" variant="default" @click="deleteProgram">
+        Delete Program File
+    </Button>
+    <Button variant="default" @click="uploadDialogOpen = true">
+        Upload File
+    </Button>
 </div>
 
 <!-- 🔸 Instruction Set Reference -->
@@ -89,10 +124,10 @@ onMounted(fetchSavedProgram)
     <div
       v-for="ins in instructionSet"
       :key="ins.binary"
-      class="flex flex-col items-center bg-gray-100 border border-gray-300 rounded px-3 py-2 w-24 text-center"
+      class="flex flex-col items-center bg-gray-100  border  border-gray-300 rounded px-3 py-2 w-24 text-center"
     >
       <span class="text-xs font-semibold text-gray-700 uppercase">{{ ins.name }}</span>
-      <span class="font-mono text-blue-600 text-sm tracking-widest">{{ ins.binary }}</span>
+      <span class="font-mono text-gray-500 text-xs tracking-widest">{{ ins.binary }}</span>
     </div>
   </div>
 </div>
@@ -109,7 +144,7 @@ onMounted(fetchSavedProgram)
 
       <!-- Simulation Canvas -->
       <div class="relative mb-6" style="width: 720px; height: 768px;">
-        <GridGuideLine class="absolute inset-0 z-0" />
+        <!-- <GridGuideLine class="absolute inset-0 z-0" /> -->
         <SimulationSpace ref="simRef" class="absolute inset-0 z-10" />
       </div>
 
@@ -131,9 +166,11 @@ onMounted(fetchSavedProgram)
           Reset
         </Button>
 
-        <Button variant="secondary" @click="uploadDialogOpen = true">
-          Upload File
-        </Button>
+
+
+
+
+
       </div>
 
       <!-- File Upload Dialog -->
