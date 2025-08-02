@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false });
-import { animateHighlightAndGlow, animateMovingText, loopMultipleComponentGlows, stopSpecificGlows } from '@/lib/animation';
+import { animateHighlightAndGlow, animateMovingText, loopMultipleComponentGlows, pauseAllComponentGlows, pauseMovingAnimation, resumeAllComponentGlows, resumeMovingAnimation, stopSpecificGlows } from '@/lib/animation';
 import { arrows } from '@/lib/arrows';
 import { components } from '@/lib/components';
 import { controlWords } from '@/lib/controlWords';
@@ -14,6 +14,7 @@ import MovingLabel from './MovingLabel.vue';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { memory } from '@/lib/fakeMemory';
+import { animationSpeed } from '@/lib/settings';
 
 // Expose computed properties for simulation state
 const simulationType = computed(() => processor.type);
@@ -84,6 +85,7 @@ const processor = reactive({
 });
 
 const validOpcodes = ['0000', '0001', '0010', '1110', '1111'];
+
 function runManualStep() {
   if (processor.halted || !isProgramLoaded()) return;
 
@@ -93,13 +95,12 @@ function runManualStep() {
     return;
   }
 
-  // Decode only at T0
+  // Decode T0
   if (processor.currentStep === 0) {
     const { opcode, operand } = extractOpcodeOperand(currentInstruction);
     processor.opcode = opcode;
     processor.operand = operand;
     processor.instruction = currentInstruction;
-    console.log(`[T0] Decoding: ${currentInstruction} → OPCODE: ${opcode}, OPERAND: ${operand}`);
   }
 
   const tStateName = `T${processor.currentStep}`;
@@ -107,9 +108,9 @@ function runManualStep() {
 
   logStep(tStateName, controlSignals);
   applyControlWords(controlSignals);
-
   nextTState();
 }
+
 function logStep(tState: string, controlSignals: string[]) {
   const control = controlSignals.join(', ');
   const flow = describeControlFlow(controlSignals);
@@ -123,36 +124,44 @@ function logStep(tState: string, controlSignals: string[]) {
 }
 function runAuto() {
   if (!isProgramLoaded() || processor.simulationDone || processor.halted) return;
-
   processor.type = 'auto';
   processor.isRunning = true;
   processor.isPaused = false;
-
-  function autoStep() {
-    if (processor.simulationDone || processor.halted || processor.isPaused) {
-      processor.isRunning = false;
-      return;
-    }
-
-    runManualStep();
-
-    // Estimate next step delay based on animation speed
-    setTimeout(autoStep, 1300); // Adjust for your timing
-  }
-
   autoStep();
 }
 
+function autoStep() {
+  if (processor.halted || processor.isPaused || processor.simulationDone) return;
 
+  runManualStep();
+
+  if (!processor.simulationDone && !processor.isPaused) {
+    processor.intervalId = setTimeout(autoStep, animationSpeed.value * 1000);
+  }
+}
 function pauseSimulation() {
   processor.isPaused = true;
+  pauseMovingAnimation();
+  pauseAllComponentGlows();
+  clearTimeout(processor.intervalId);
+
 }
 
 function resumeSimulation() {
+  if (processor.simulationDone || processor.halted) return;
   processor.isPaused = false;
-  runAuto(); // resume loop
+  resumeMovingAnimation();
+  resumeAllComponentGlows();
+  autoStep();
 }
-function togglePause() {}
+
+function togglePause() {
+  if (processor.isPaused) {
+    resumeSimulation();
+  } else {
+    pauseSimulation();
+  }
+}
 
 function resetSimulation() {
   processor.currentInstruction = 0;
@@ -551,9 +560,7 @@ function isFinished(): boolean {
     return false;
 }
 
-function stopSimulation() {}
 
-function advanceStep() {}
 
 defineExpose({
     testMovePath,
