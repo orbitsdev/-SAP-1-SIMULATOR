@@ -84,22 +84,39 @@ onMounted(fetchSavedProgram);
 
     <!-- 🔹 Instructions Panel -->
     <div class="w-full">
-      <h2 class="mb-3 text-sm font-semibold text-gray-800 uppercase tracking-wide">
-        Loaded Instructions
+        <h2 class="mt-6 mb-3 text-sm font-semibold text-gray-800 uppercase tracking-wide">
+        Instruction Set
+      </h2>
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+        <div
+          v-for="ins in instructionSet"
+          :key="ins.binary"
+          class="flex flex-col items-center rounded border border-gray-300 bg-gray-100 p-1 text-center"
+        >
+          <span class="text-[11px] font-semibold text-gray-700 uppercase">{{ ins.name }}</span>
+          <span class="font-mono text-[11px] tracking-widest text-gray-500">{{ ins.binary }}</span>
+        </div>
+      </div>
+      <h2 class="mb-3 text-sm font-semibold text-gray-800 uppercase tracking-wide mt-6 flex items-center">
+        <span class="mr-2">Loaded Instructions</span>
+        <span v-if="simRef?.isRunning" class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
       </h2>
 
-      <div v-if="hasProgram" class="space-y-1 overflow-y-auto max-h-64 w-full pr-1">
+      <div v-if="hasProgram" class="space-y-1.5 overflow-y-auto max-h-64 w-full pr-1 border border-gray-200 rounded-md p-2 bg-gray-50 shadow-inner">
         <div
           v-for="(line, index) in uploadedInstructions"
           :key="index"
           :class="[
-            'rounded border px-2 py-1 font-mono text-xs transition-colors',
+            'rounded border px-3 py-1.5 font-mono text-xs transition-all duration-300',
             simRef?.currentInstruction === index
-              ? 'active-instruction'
-              : 'border-gray-200 bg-gray-50 text-gray-700',
+              ? 'active-instruction font-bold text-gray-800  '
+              : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
           ]"
         >
-          {{ index.toString().padStart(1, '0') }}: {{ getInstructionName(line) }} - {{ line }}
+          <div class="flex justify-between">
+            <span class="font-semibold">{{ index.toString().padStart(1, '0') }}: {{ getInstructionName(line) }}</span>
+            <span class="text-gray-500">{{ line }}</span>
+          </div>
         </div>
       </div>
 
@@ -114,19 +131,7 @@ onMounted(fetchSavedProgram);
       </div>
 
       <!-- 📘 Instruction Set -->
-      <h2 class="mt-6 mb-3 text-sm font-semibold text-gray-800 uppercase tracking-wide">
-        Instruction Set
-      </h2>
-      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-        <div
-          v-for="ins in instructionSet"
-          :key="ins.binary"
-          class="flex flex-col items-center rounded border border-gray-300 bg-gray-100 p-1 text-center"
-        >
-          <span class="text-[11px] font-semibold text-gray-700 uppercase">{{ ins.name }}</span>
-          <span class="font-mono text-[11px] tracking-widest text-gray-500">{{ ins.binary }}</span>
-        </div>
-      </div>
+
     </div>
   </div>
 </section>
