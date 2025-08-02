@@ -150,6 +150,7 @@ onMounted(fetchSavedProgram);
 
         <!-- Simulation Controls -->
         <div class="flex flex-wrap gap-3">
+          <Button variant="default" @click="simRef?.testMovePath()">Test Move Path</Button>
           <Button variant="default" @click="simRef?.runManualStep()" :disabled="!hasProgram || simRef?.isHalted">Manual</Button>
           <Button variant="default" @click="simRef?.runAuto()" :disabled="!hasProgram || simRef?.isHalted || simRef?.isRunning">Auto</Button>
           <Button

@@ -21,6 +21,8 @@ const isPaused = computed(() => processor.isPaused);
 const isRunning = computed(() => processor.isRunning);
 const isHalted = computed(() => processor.halted);
 
+const showEmptySteps = false;
+
 const program = ref<string[]>([]);
 const uploadedInstructions = ref<string[]>([]); //
 const hasProgram = ref(false); //
@@ -76,6 +78,8 @@ const processor = reactive({
 
     errorMessage: '', // For invalid instructions
     invalidInstructionIndex: -1, // If any
+    lastSource: 'pc' as 'pc' | 'ir',
+    pendingFinalStep: false,
 
 });
 
@@ -101,21 +105,23 @@ function runManualStep() {
   const tStateName = `T${processor.currentStep}`;
   const controlSignals = getCurrentControlWords(processor.opcode, processor.currentStep);
 
-  // ✅ Always log even if no signals
-  console.log(`\n▶ STEP: ${tStateName}`);
-  console.log(`→ Control Signals: [${controlSignals.join(', ') || '— (No signals)' }]`);
-  console.log(`→ Data Flow: ${describeControlFlow(controlSignals)}`);
-
-  const stepMessage = `STEP ${tStateName} | Instruction: ${processor.instruction} | Control: [${controlSignals.join(', ')}] | Flow: ${describeControlFlow(controlSignals)}`;
-
-processor.explanationLog.push(stepMessage);
-console.log(stepMessage);
-
-
+  logStep(tStateName, controlSignals);
   applyControlWords(controlSignals);
 
   nextTState();
 }
+function logStep(tState: string, controlSignals: string[]) {
+  const control = controlSignals.join(', ');
+  const flow = describeControlFlow(controlSignals);
+  const message = `STEP ${tState} | Instruction: ${processor.instruction} | Control: [${control || '—'}] | Flow: ${flow}`;
+
+  // Only log meaningful steps, or show all if debugging
+  if (showEmptySteps || controlSignals.length > 0 || flow !== '—') {
+    processor.explanationLog.push(message);
+    console.log('\n▶ ' + message);
+  }
+}
+
 
 
 function runAuto() {}
@@ -131,6 +137,8 @@ function resetSimulation() {
   processor.instruction = '';
   processor.halted = false;
   processor.simulationDone = false;
+
+  processor.explanationLog = [];
 
   updateComponentValue('pc', '00000000'); // ✅ INITIALIZE PC here
   updateComponentValue('mar', '');
@@ -188,30 +196,48 @@ function applyControlWords(controlSignals: string[]) {
         executeControlWord(signal);
     }
 }
+function checkIfFinalStepComplete() {
+  if (processor.pendingFinalStep) {
+    processor.simulationDone = true;
+    processor.pendingFinalStep = false;
+    console.log('✅ Simulation complete after final animation.');
+  }
+}
+
 function executeControlWord(signal: string) {
 
 
     switch (signal) {
     case 'Ep': // PC → Bus
+    processor.lastSource = 'pc';
       loopMultipleComponentGlows(['pc', 'mar']);
       console.log(`→ [Ep] PC outputs to Bus: ${getComponentValue('pc')}`);
       break;
 
-    case 'Lm': { // MAR ← Bus (from PC)
-      const fullPc = getComponentValue('pc');
-      const lower4Bits = fullPc.slice(4); // Only last 4 bits (address)
-      processor.movingText = lower4Bits;
+      case 'Lm': {
+  const source = processor.lastSource;
+  const value = source === 'pc'
+    ? getComponentValue('pc').slice(4)
+    : getComponentValue('ir').slice(4);
 
-      console.log(`→ [Lm] Load MAR ← PC[4-7]: ${lower4Bits}`);
+  const path = source === 'pc'
+    ? movePaths.pcToMar
+    : movePaths.irToMar;
 
-      animateMovingText('moving-label', movePaths.pcToMar, lower4Bits, () => {
-        updateComponentValue('mar', lower4Bits);
-        processor.movingText = '';
-        stopSpecificGlows(['pc', 'mar']);
-        console.log(`✓ MAR now holds: ${getComponentValue('mar')}`);
-      });
-      break;
-    }
+  processor.movingText = value;
+
+  console.log(`→ [Lm] Load MAR ← ${source.toUpperCase()}[4-7]: ${value}`);
+
+  animateMovingText('moving-label', path, value, () => {
+    updateComponentValue('mar', value);
+    processor.movingText = '';
+    stopSpecificGlows([source, 'mar']);
+    console.log(`✓ MAR now holds: ${value}`);
+  });
+
+  break;
+}
+
 
     case 'Ce': { // PC++
       const old = getComponentValue('pc');
@@ -297,65 +323,125 @@ function executeControlWord(signal: string) {
     }
 
     case 'Su': {
-      const a = getComponentValue('a');
-      const b = getComponentValue('b');
-      const result = binarySub(a, b);
-      updateComponentValue('alu', result);
-      processor.movingText = result;
+  const a = getComponentValue('a');
+  const b = getComponentValue('b');
+  const result = binarySub(a, b);
+  updateComponentValue('alu', result);
+  processor.movingText = result;
 
-      console.log(`→ [Su] ALU Sub: ${a} - ${b} = ${result}`);
+  console.log(`→ [Su] ALU Sub: ${a} - ${b} = ${result}`);
 
-      loopMultipleComponentGlows(['alu', 'a']);
-      animateMovingText('moving-label', movePaths.aluToA, result, () => {
-        updateComponentValue('a', result);
-        processor.movingText = '';
-        stopSpecificGlows(['alu', 'a']);
-      });
-      break;
-    }
+  loopMultipleComponentGlows(['alu', 'a']);
+  animateMovingText('moving-label', movePaths.aluToA, result, () => {
+    updateComponentValue('a', result);
+    processor.movingText = '';
+    stopSpecificGlows(['alu', 'a']);
+    checkIfFinalStepComplete(); // ✅ added
+  });
+  break;
+}
 
-    case 'Lo': {
-      const value = getComponentValue('a');
-      loopMultipleComponentGlows(['a', 'out']);
-      processor.movingText = value;
 
-      console.log(`→ [Lo] OUT ← A = ${value}`);
+case 'Lo': {
+  const value = getComponentValue('a');
+  loopMultipleComponentGlows(['a', 'out']);
+  processor.movingText = value;
 
-      animateMovingText('moving-label', movePaths.aToOut, value, () => {
-        updateComponentValue('out', value);
-        processor.movingText = '';
-        stopSpecificGlows(['a', 'out']);
-        console.log(`✓ OUT now holds: ${getComponentValue('out')}`);
-      });
-      break;
-    }
+  console.log(`→ [Lo] OUT ← A = ${value}`);
+
+  animateMovingText('moving-label', movePaths.aToOut, value, () => {
+    updateComponentValue('out', value);
+    processor.movingText = '';
+    stopSpecificGlows(['a', 'out']);
+    console.log(`✓ OUT now holds: ${getComponentValue('out')}`);
+    checkIfFinalStepComplete(); // ✅ added
+  });
+  break;
+}
+
+
+    case 'Lu': {
+  const result = getComponentValue('alu');
+  processor.movingText = result;
+
+  console.log(`→ [Lu] Load A ← ALU = ${result}`);
+
+  loopMultipleComponentGlows(['alu', 'a']);
+  animateMovingText('moving-label', movePaths.aluToA, result, () => {
+    updateComponentValue('a', result);
+    processor.movingText = '';
+    stopSpecificGlows(['alu', 'a']);
+    console.log(`✓ A now holds: ${result} from ALU`);
+    checkIfFinalStepComplete(); // ✅ added
+  });
+  break;
+}
+
+
+case 'Ea': {
+  const value = getComponentValue('a');
+  processor.movingText = value;
+
+  loopMultipleComponentGlows(['a', 'alu']);
+  console.log(`→ [Ea] A → ALU: ${value}`);
+
+  animateMovingText('moving-label', movePaths.aToAlu, value, () => {
+    // No value update; just visual
+    processor.movingText = '';
+    stopSpecificGlows(['a', 'alu']);
+  });
+
+  break;
+}
+case 'Ei': {
+  processor.lastSource = 'ir';
+  const ir = getComponentValue('ir');
+  const operand = ir.slice(4); // Only use lower 4 bits
+  processor.movingText = operand;
+
+  loopMultipleComponentGlows(['ir', 'mar']);
+  console.log(`→ [Ei] IR → Bus: operand=${operand}`);
+
+  animateMovingText('moving-label', movePaths.irToMar, operand, () => {
+    updateComponentValue('mar', operand);
+    processor.movingText = '';
+    stopSpecificGlows(['ir', 'mar']);
+    console.log(`✓ MAR now holds operand from IR: ${operand}`);
+  });
+
+  break;
+}
+
+
 
     default:
       console.warn(`⚠️ Unknown signal: ${signal}`);
   }
 }
 
-
 function nextTState() {
-    processor.currentStep++;
+  processor.currentStep++;
 
-    const mnemonic = getMnemonicFromOpcode(processor.opcode);
-    const maxT = Object.keys(controlWords[mnemonic]).length;
+  const mnemonic = getMnemonicFromOpcode(processor.opcode);
+  const maxT = Object.keys(controlWords[mnemonic]).length;
 
-    if (processor.currentStep >= maxT) {
-        processor.currentStep = 0;
-        processor.currentInstruction++;
+  if (processor.currentStep >= maxT) {
+    processor.currentStep = 0;
+    processor.currentInstruction++;
 
-        if (mnemonic === 'HLT') {
-            haltSimulation();
-            return;
-        }
-
-        if (processor.currentInstruction >= program.value.length) {
-            processor.simulationDone = true;
-        }
+    if (mnemonic === 'HLT') {
+      haltSimulation();
+      return;
     }
+
+    // 🛑 WAIT for animation, do NOT set simulationDone here
+    const isLastInstruction = processor.currentInstruction >= program.value.length;
+    if (isLastInstruction) {
+      processor.pendingFinalStep = true; // wait for last animation
+    }
+  }
 }
+
 
 function updateComponentValue(id: string, value: string) {
     const comp = components.find((c) => c.id === id);
@@ -418,14 +504,14 @@ function testMovePath() {
     console.log('');
 
     processor.movingText = binary;
-    updateComponentValue('prom', binary);
+    updateComponentValue('ir', binary);
 
-    loopMultipleComponentGlows(['out']);
+    loopMultipleComponentGlows(['ir', 'mar']);
 
-    animateMovingText('moving-label', movePaths.promToB, binary, () => {
-        updateComponentValue('out', binary);
+    animateMovingText('moving-label', movePaths.irToMar, binary, () => {
+        updateComponentValue('mar', binary);
         processor.movingText = '';
-        stopSpecificGlows(['out']);
+        stopSpecificGlows(['ir', 'mar']);
     });
 }
 
@@ -445,6 +531,7 @@ function stopSimulation() {}
 function advanceStep() {}
 
 defineExpose({
+    testMovePath,
     loadProgramFromFile,
     runManualStep,
     runAuto,
