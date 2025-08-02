@@ -1,9 +1,4 @@
-// lib/controlWords.ts
 
-/**
- * Control word mappings for each instruction and T-state.
- * These represent the micro-operations that activate control lines in SAP-1.
- */
 export const controlWords: Record<string, Record<string, string[]>> = {
     LDA: {
       T0: ['Ep', 'Lm'],   // PC → MAR
@@ -37,12 +32,11 @@ export const controlWords: Record<string, Record<string, string[]>> = {
     OUT: {
       T0: ['Ep', 'Lm'],
       T1: ['Ce', 'Li'],
-      T2: ['Ea', 'Lo'],   // A → Output Register
+      T2: ['Ea', 'Lo'],
     },
 
     HLT: {
       T0: ['Ep', 'Lm'],
       T1: ['Ce', 'Li'],
-      T2: [],             // No action; halt immediately
-    },
+      T2: [],
   };

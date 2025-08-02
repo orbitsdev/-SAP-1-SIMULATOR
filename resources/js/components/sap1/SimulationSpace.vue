@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false });
-import { animateHighlightAndGlow, animateMovingText, loopMultipleComponentGlows, pauseAllComponentGlows, pauseMovingAnimation, resumeAllComponentGlows, resumeMovingAnimation, stopSpecificGlows } from '@/lib/animation';
+import { animateHighlightAndGlow, animateMovingText, loopMultipleComponentGlows, pauseAllComponentGlows, pauseMovingAnimation, resumeAllComponentGlows, resumeMovingAnimation, stopAllComponentGlows, stopSpecificGlows } from '@/lib/animation';
 import { arrows } from '@/lib/arrows';
 import { components } from '@/lib/components';
 import { controlWords } from '@/lib/controlWords';
@@ -87,7 +87,27 @@ const processor = reactive({
 const validOpcodes = ['0000', '0001', '0010', '1110', '1111'];
 
 function runManualStep() {
-  if (processor.halted || !isProgramLoaded()) return;
+  if (!isProgramLoaded() || processor.simulationDone || processor.halted) return;
+
+  // Set mode to manual if not already set
+  if (processor.type !== 'manual') {
+    processor.type = 'manual';
+  }
+
+  // If paused, resume animations but stay in manual mode
+  if (processor.isPaused) {
+    processor.isPaused = false;
+    resumeMovingAnimation();
+    resumeAllComponentGlows();
+  }
+
+  processor.isRunning = true;
+
+  // Check if there's an active animation in progress
+  if (activeMovingAnimation !== null) {
+    console.log('Animation in progress. Wait for it to complete before next step.');
+    return;
+  }
 
   const currentInstruction = program.value[processor.currentInstruction];
   if (!isValidInstruction(currentInstruction)) {
@@ -107,8 +127,11 @@ function runManualStep() {
   const controlSignals = getCurrentControlWords(processor.opcode, processor.currentStep);
 
   logStep(tStateName, controlSignals);
-  applyControlWords(controlSignals);
-  nextTState();
+
+  // Use callback to ensure nextTState is called only after all animations complete
+  applyControlWords(controlSignals, () => {
+    nextTState();
+  });
 }
 
 function logStep(tState: string, controlSignals: string[]) {
@@ -124,9 +147,18 @@ function logStep(tState: string, controlSignals: string[]) {
 }
 function runAuto() {
   if (!isProgramLoaded() || processor.simulationDone || processor.halted) return;
+
+  // Set mode to auto
   processor.type = 'auto';
   processor.isRunning = true;
-  processor.isPaused = false;
+
+  // If already paused, just change the mode but don't resume
+  if (processor.isPaused) {
+    console.log('Auto mode set, but simulation remains paused. Click Resume to continue.');
+    return;
+  }
+
+  // Start or continue auto execution
   autoStep();
 }
 
@@ -164,30 +196,50 @@ function togglePause() {
 }
 
 function resetSimulation() {
+  // Clear any active timers
+  if (processor.intervalId !== null) {
+    clearTimeout(processor.intervalId);
+    processor.intervalId = null;
+  }
+
+  // Reset animation state
+  pauseMovingAnimation();
+  stopAllComponentGlows();
+
+  // Reset processor state
   processor.currentInstruction = 0;
   processor.currentStep = 0;
   processor.opcode = '';
   processor.operand = '';
   processor.instruction = '';
-  processor.halted = false;
+  processor.isRunning = false;
+  processor.isPaused = false;
   processor.simulationDone = false;
+  processor.halted = false;
+  processor.pendingFinalStep = false;
+  processor.type = 'manual';
+  processor.lastSource = '';
+  processor.movingText = '';
 
   processor.explanationLog = [];
 
-  updateComponentValue('pc', '00000000'); // ✅ INITIALIZE PC here
+  updateComponentValue('pc', '00000000'); // INITIALIZE PC here
   updateComponentValue('mar', '');
   updateComponentValue('ir', '');
   updateComponentValue('a', '');
   updateComponentValue('b', '');
-  updateComponentValue('alu', '');
   updateComponentValue('out', '');
+  updateComponentValue('alu', '');
   updateComponentValue('prom', '');
-  updateComponentValue('bd', '');
+
+  console.log('Simulation reset');
 }
 
 function isSimulationComplete(): boolean {
     return false;
 }
+
+
 
 //Instruction + Control Word Functions
 function getCurrentInstructionBinary(): string {
@@ -224,28 +276,52 @@ function getMnemonicFromOpcode(opcode: string): keyof typeof controlWords {
     }
 }
 
-function applyControlWords(controlSignals: string[]) {
-    animateHighlightAndGlow('con');
-    for (const signal of controlSignals) {
-        executeControlWord(signal);
-    }
+function applyControlWords(controlSignals: string[], onDone: () => void = () => {}) {
+  animateHighlightAndGlow('con');
+
+  let completed = 0;
+  const total = controlSignals.length;
+
+  if (total === 0) {
+    onDone();
+    return;
+  }
+
+  for (const signal of controlSignals) {
+    executeControlWord(signal, () => {
+      completed++;
+      if (completed === total) {
+        onDone();
+      }
+    });
+  }
 }
 function checkIfFinalStepComplete() {
   if (processor.pendingFinalStep) {
+
+    pauseMovingAnimation();
+    stopAllComponentGlows();
+
+
+    if (processor.intervalId !== null) {
+      clearTimeout(processor.intervalId);
+      processor.intervalId = null;
+    }
+
     processor.simulationDone = true;
     processor.pendingFinalStep = false;
+    processor.isRunning = false;
     console.log('✅ Simulation complete after final animation.');
   }
 }
 
-function executeControlWord(signal: string) {
-
-
-    switch (signal) {
+function executeControlWord(signal: string, onDone: () => void = () => {}) {
+  switch (signal) {
     case 'Ep': // PC → Bus
     processor.lastSource = 'pc';
       loopMultipleComponentGlows(['pc', 'mar']);
       console.log(`→ [Ep] PC outputs to Bus: ${getComponentValue('pc')}`);
+      onDone();
       break;
 
       case 'Lm': {
@@ -267,6 +343,7 @@ function executeControlWord(signal: string) {
     processor.movingText = '';
     stopSpecificGlows([source, 'mar']);
     console.log(`✓ MAR now holds: ${value}`);
+    onDone();
   });
 
   break;
@@ -283,6 +360,7 @@ function executeControlWord(signal: string) {
         updateComponentValue('pc', newValue);
         animateHighlightAndGlow('pc');
         console.log(`→ [Ce] PC incremented: ${old} → ${newValue}`);
+        onDone();
       }, 300);
       break;
     }
@@ -301,6 +379,7 @@ function executeControlWord(signal: string) {
         processor.movingText = '';
         stopSpecificGlows(['prom', 'ir']);
         console.log(`✓ IR now holds: ${getComponentValue('ir')}`);
+        onDone();
       });
       break;
     }
@@ -315,6 +394,7 @@ function executeControlWord(signal: string) {
         updateComponentValue('a', value);
         processor.movingText = '';
         stopSpecificGlows(['prom', 'a']);
+        onDone();
       });
       break;
     }
@@ -329,13 +409,15 @@ function executeControlWord(signal: string) {
         updateComponentValue('b', value);
         processor.movingText = '';
         stopSpecificGlows(['prom', 'b']);
+        onDone();
       });
       break;
     }
 
-    case 'Ea':
+    case 'Ea': // A → Bus
       loopMultipleComponentGlows(['a', 'alu']);
       console.log(`→ [Ea] A → ALU input: ${getComponentValue('a')}`);
+      onDone();
       break;
 
     case 'Eu': {
@@ -352,6 +434,7 @@ function executeControlWord(signal: string) {
         updateComponentValue('a', result);
         processor.movingText = '';
         stopSpecificGlows(['alu', 'a']);
+        onDone();
       });
       break;
     }
@@ -370,7 +453,8 @@ function executeControlWord(signal: string) {
     updateComponentValue('a', result);
     processor.movingText = '';
     stopSpecificGlows(['alu', 'a']);
-    checkIfFinalStepComplete(); // ✅ added
+    checkIfFinalStepComplete(); //
+    onDone();
   });
   break;
 }
@@ -387,8 +471,9 @@ case 'Lo': {
     updateComponentValue('out', value);
     processor.movingText = '';
     stopSpecificGlows(['a', 'out']);
-    console.log(`✓ OUT now holds: ${getComponentValue('out')}`);
-    checkIfFinalStepComplete(); // ✅ added
+    console.log(` OUT now holds: ${getComponentValue('out')}`);
+    checkIfFinalStepComplete(); //
+    onDone();
   });
   break;
 }
@@ -405,8 +490,9 @@ case 'Lo': {
     updateComponentValue('a', result);
     processor.movingText = '';
     stopSpecificGlows(['alu', 'a']);
-    console.log(`✓ A now holds: ${result} from ALU`);
-    checkIfFinalStepComplete(); // ✅ added
+    console.log(` A now holds: ${result} from ALU`);
+    checkIfFinalStepComplete(); //
+    onDone();
   });
   break;
 }
@@ -423,6 +509,7 @@ case 'Ea': {
     // No value update; just visual
     processor.movingText = '';
     stopSpecificGlows(['a', 'alu']);
+    onDone();
   });
 
   break;
@@ -440,7 +527,8 @@ case 'Ei': {
     updateComponentValue('mar', operand);
     processor.movingText = '';
     stopSpecificGlows(['ir', 'mar']);
-    console.log(`✓ MAR now holds operand from IR: ${operand}`);
+    console.log(` MAR now holds operand from IR: ${operand}`);
+    onDone();
   });
 
   break;
@@ -449,7 +537,8 @@ case 'Ei': {
 
 
     default:
-      console.warn(`⚠️ Unknown signal: ${signal}`);
+      console.warn(` Unknown signal: ${signal}`);
+      onDone();
   }
 }
 
@@ -468,14 +557,21 @@ function nextTState() {
       return;
     }
 
-    // 🛑 WAIT for animation, do NOT set simulationDone here
+    // WAIT for animation, do NOT set simulationDone here
     const isLastInstruction = processor.currentInstruction >= program.value.length;
     if (isLastInstruction) {
       processor.pendingFinalStep = true; // wait for last animation
     }
   }
-}
 
+  // If in auto mode and not paused/halted/done, schedule next step
+  if (processor.type === 'auto' && !processor.isPaused && !processor.halted && !processor.simulationDone) {
+    if (processor.intervalId !== null) {
+      clearTimeout(processor.intervalId);
+    }
+    processor.intervalId = setTimeout(autoStep, animationSpeed.value * 1000);
+  }
+}
 
 function updateComponentValue(id: string, value: string) {
     const comp = components.find((c) => c.id === id);
