@@ -121,12 +121,37 @@ function logStep(tState: string, controlSignals: string[]) {
     console.log('\n▶ ' + message);
   }
 }
+function runAuto() {
+  if (!isProgramLoaded() || processor.simulationDone || processor.halted) return;
+
+  processor.type = 'auto';
+  processor.isRunning = true;
+  processor.isPaused = false;
+
+  function autoStep() {
+    if (processor.simulationDone || processor.halted || processor.isPaused) {
+      processor.isRunning = false;
+      return;
+    }
+
+    runManualStep();
+
+    // Estimate next step delay based on animation speed
+    setTimeout(autoStep, 1300); // Adjust for your timing
+  }
+
+  autoStep();
+}
 
 
+function pauseSimulation() {
+  processor.isPaused = true;
+}
 
-function runAuto() {}
-function pauseSimulation() {}
-function resumeSimulation() {}
+function resumeSimulation() {
+  processor.isPaused = false;
+  runAuto(); // resume loop
+}
 function togglePause() {}
 
 function resetSimulation() {
