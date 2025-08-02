@@ -2,4 +2,4 @@
 import { ref } from 'vue'
 
 // Default speed in seconds (1.2 = slow, 0.6 = fast)
-export const animationSpeed = ref(0.3)
+export const animationSpeed = ref(0.4)

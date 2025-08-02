@@ -7,6 +7,7 @@ import { computed, onMounted, ref } from 'vue';
 import MemoryReference from '../components/sap1/MemoryReference.vue';
 import SimulationSpace from '../components/sap1/SimulationSpace.vue';
 import UploadModal from '../components/sap1/UploadModal.vue';
+import ExplanationPanel from '../components/sap1/ExplanationPanel.vue';
 
 const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null);
 const uploadDialogOpen = ref(false);
@@ -134,6 +135,7 @@ onMounted(fetchSavedProgram);
 
     </div>
   </div>
+    <ExplanationPanel :logs="simRef?.explanationLog || []" class="w-full col-span-2 mt-8" />
 </section>
 
 
