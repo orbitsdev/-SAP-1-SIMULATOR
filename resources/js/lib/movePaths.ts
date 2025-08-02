@@ -1,6 +1,7 @@
 const busX = 316;
 
-export const movePaths = {
+
+export const movePaths: Record<string, { x: number; y: number }[]>= {
    pcToMar: [
       { x: 109, y: 107 },
       { x: 109, y: 73 },
