@@ -23,6 +23,7 @@ import { reactive, onMounted, computed } from "vue";
 
 import { movePaths } from "@/lib/movePaths";
 import { memory } from "@/lib/fakeMemory";
+import { getControlWords } from "@/lib/controlWords";
 
 import {
   Dialog,
@@ -32,12 +33,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-
-
-
 const program = ref<string[]>([])
 const hasProgram = ref(false)
-
 
 function loadProgramFromFile(lines: string[]) {
   program.value = lines.filter((l: string) => /^[01]{8}$/.test(l.trim()))
@@ -45,16 +42,11 @@ function loadProgramFromFile(lines: string[]) {
 }
 
 
-function isProgramLoaded(): boolean {
-  return program.value.length > 0
-}
-
 
 onMounted(async () => {
   try {
     const res = await axios.get('/program-load')
     if (res.data.exists) {
-      // Load program directly without using uploadedInstructions
       program.value = res.data.lines.filter((l: string) => /^[01]{8}$/.test(l.trim()))
       hasProgram.value = true
     } else {
@@ -65,7 +57,6 @@ onMounted(async () => {
     hasProgram.value = false
   }
 })
-
 
 const processor = reactive({
   type: "manual",
@@ -104,7 +95,7 @@ function runManualStep() {
   if (!isValidInstruction(instruction)) {
     processor.invalidInstructionIndex = processor.currentInstruction;
     processor.showErrorModal = true;
-    processor.halted = true; // Explicitly halt the simulation
+    processor.halted = true;
     stopSimulation();
     return;
   }
@@ -131,25 +122,40 @@ function runManualStep() {
       handleT2(instruction, () => processor.currentStep++);
       break;
     case 3:
-      handleT3(instruction, () => processor.currentStep++);
+      handleT3(instruction, () => {
+        // Only proceed if not halted
+        if (!processor.halted) {
+          processor.currentStep++;
+        } else {
+          stopSimulation();
+        }
+      });
       break;
     case 4:
+      // Check if processor is halted before proceeding to T4
+      if (processor.halted) {
+        stopSimulation();
+        return;
+      }
       handleT4(instruction, () => {
-        // auto-skip T4 if not needed
         if (["0000", "1111"].includes(processor.opcode)) proceed();
         else processor.currentStep++;
       });
       break;
    case 5:
- handleT5(instruction, () => {
-  processor.currentStep = 0;
+      // Check if processor is halted before proceeding to T5
+      if (processor.halted) {
+        stopSimulation();
+        return;
+      }
+      handleT5(instruction, () => {
+        processor.currentStep = 0;
 
-  if (!processor.halted) {
-    processor.currentInstruction++;
-  }
-});
-
-  break;
+        if (!processor.halted) {
+          processor.currentInstruction++;
+        }
+      });
+      break;
   }
 }
 function isFinished(): boolean {
@@ -227,15 +233,33 @@ function runAuto() {
       handleT2(instruction, proceed);
       break;
     case 3:
-      handleT3(instruction, proceed);
+      handleT3(instruction, () => {
+        // Only proceed if not halted
+        if (!processor.halted) {
+          processor.currentStep++;
+          runAuto();
+        } else {
+          stopSimulation();
+        }
+      });
       break;
     case 4:
+      // Check if processor is halted before proceeding to T4
+      if (processor.halted) {
+        stopSimulation();
+        return;
+      }
       handleT4(instruction, () => {
         if (["0000", "1111"].includes(processor.opcode)) proceed();
         else processor.currentStep++, runAuto();
       });
       break;
     case 5:
+      // Check if processor is halted before proceeding to T5
+      if (processor.halted) {
+        stopSimulation();
+        return;
+      }
       handleT5(instruction, finish);
       break;
   }
@@ -283,9 +307,11 @@ function togglePause() {
   }
 }
 
-
 function handleT0(instruction: string, onComplete: () => void) {
   const pcValue = processor.currentInstruction.toString(2).padStart(4, "0");
+
+  const controlSignals = getControlWords(instruction, 0);
+  console.log(`T0 Control Signals: ${controlSignals.join(', ')}`);
 
   updateComponentValue("pc", pcValue);
   loopMultipleComponentGlows(["pc", "mar", ]);
@@ -303,11 +329,13 @@ function handleT0(instruction: string, onComplete: () => void) {
 }
 
 function handleT1(instruction: string, onComplete: () => void) {
-  const instructionAtMar = program.value[processor.currentInstruction]; // 8-bit binary
+  const instructionAtMar = program.value[processor.currentInstruction];
+
+  const controlSignals = getControlWords(instruction, 1);
+  console.log(`T1 Control Signals: ${controlSignals.join(', ')}`);
 
   updateComponentValue("prom", instructionAtMar);
-loopMultipleComponentGlows(["prom", "ir", ]);
-
+  loopMultipleComponentGlows(["prom", "ir", ]);
 
   processor.movingText = instructionAtMar;
   animateMovingText("moving-label", movePaths.promToIr, instructionAtMar, () => {
@@ -322,35 +350,57 @@ loopMultipleComponentGlows(["prom", "ir", ]);
   });
 }
 
+
 function handleT2(instruction: string, onComplete: () => void) {
-  const operand = processor.operand;
+  const controlSignals = getControlWords(instruction, 2);
+  console.log(`T2 Control Signals: ${controlSignals.join(', ')}`);
 
   const newPcValue = (processor.currentInstruction + 1).toString(2).padStart(4, "0");
   updateComponentValue("pc", newPcValue);
   loopMultipleComponentGlows(["pc"]);
 
+  // ⛔ Skip IR→MAR animation for HLT
+  if (processor.opcode === "1111") {
+    stopSpecificGlows(["pc", "ir", "mar"]);
+    onComplete();
+    return;
+  }
 
-  loopMultipleComponentGlows(["ir", "mar", ]);
-
+  const operand = processor.operand;
+  loopMultipleComponentGlows(["ir", "mar"]);
   processor.movingText = operand;
 
   animateMovingText("moving-label", movePaths.irToMar, operand, () => {
     updateComponentValue("mar", operand);
     stopSpecificGlows(["ir", "mar", "pc"]);
     processor.movingText = "";
-
-    console.log("");
-    console.log("");
-
     onComplete();
   });
 }
+
 
 function handleT3(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode;
   const operand = processor.operand;
 
-  const fakeMemoryValue = memory[operand] || "00000000"; //
+  const controlSignals = getControlWords(instruction, 3);
+  console.log(`T3 Control Signals: ${controlSignals.join(', ')}`);
+
+  // Check for HLT instruction first to prevent any animations
+  if (opcode === "1111") {
+    console.log("Halting simulation");
+    processor.halted = true;
+
+    // Stop any ongoing animations or glows
+    stopAllComponentGlows();
+    pauseMovingAnimation();
+    processor.movingText = "";
+
+    onComplete();
+    return;
+  }
+
+  const fakeMemoryValue = memory[operand] || "00000000";
 
   let target = "";
   let path;
@@ -361,13 +411,27 @@ function handleT3(instruction: string, onComplete: () => void) {
   } else if (opcode === "0001" || opcode === "0010") {
     target = "b";
     path = movePaths.promToB;
+  } else if (opcode === "1110") {
+    const aValue = getComponentValue("a");
+    loopMultipleComponentGlows(["a", "out", ]);
+    processor.movingText = aValue;
+
+    animateMovingText("moving-label", movePaths.aToOut, aValue, () => {
+      updateComponentValue("out", aValue);
+      updateComponentValue("bd", aValue);
+      stopSpecificGlows(["a", "out"]);
+      processor.movingText = "";
+      console.log("");
+      onComplete();
+    });
+    return;
   } else {
     console.log("T3 skipped (no data fetch required)");
     onComplete();
     return;
   }
 
-loopMultipleComponentGlows(["prom", target, ]);
+  loopMultipleComponentGlows(["prom", target, ]);
   processor.movingText = fakeMemoryValue;
 
   animateMovingText("moving-label", path, fakeMemoryValue, () => {
@@ -385,15 +449,15 @@ loopMultipleComponentGlows(["prom", target, ]);
 function handleT4(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode;
 
-  if (opcode === "0001") {
+  const controlSignals = getControlWords(instruction, 4);
+  console.log(`T4 Control Signals: ${controlSignals.join(', ')}`);
 
+  if (opcode === "0001") {
     const aVal = getComponentValue("a");
     const bVal = getComponentValue("b");
     const result = binaryAdd(aVal, bVal);
 
-
-loopMultipleComponentGlows(["b", ]);
-
+    loopMultipleComponentGlows(["b", ]);
 
     processor.movingText = bVal;
     animateMovingText("moving-label", movePaths.bToAlu, bVal, () => {
@@ -403,12 +467,11 @@ loopMultipleComponentGlows(["b", ]);
       animateHighlightAndGlow("alu");
 
       setTimeout(() => {
-        loopMultipleComponentGlows(["a"]); //
+        loopMultipleComponentGlows(["a"]);
         processor.movingText = aVal;
         animateMovingText("moving-label", movePaths.aToAlu, aVal, () => {
           stopSpecificGlows(["a"]);
           processor.movingText = "";
-
 
           setTimeout(() => {
             processor.movingText = result;
@@ -425,28 +488,24 @@ loopMultipleComponentGlows(["b", ]);
       }, 300);
     });
   } else if (opcode === "0010") {
-
     const aVal = getComponentValue("a");
     const bVal = getComponentValue("b");
     const result = binarySub(aVal, bVal);
 
-  loopMultipleComponentGlows(["b", ]);
+    loopMultipleComponentGlows(["b", ]);
     processor.movingText = bVal;
     animateMovingText("moving-label", movePaths.bToAlu, bVal, () => {
       stopSpecificGlows(["b"]);
       processor.movingText = "";
 
-
       animateHighlightAndGlow("alu");
 
       setTimeout(() => {
-
         loopMultipleComponentGlows(["a"]);
         processor.movingText = aVal;
         animateMovingText("moving-label", movePaths.aToAlu, aVal, () => {
           stopSpecificGlows(["a"]);
           processor.movingText = "";
-
 
           setTimeout(() => {
             processor.movingText = result;
@@ -462,23 +521,28 @@ loopMultipleComponentGlows(["b", ]);
         });
       }, 300);
     });
-  } else if (opcode === "1110") {
-
-    const aValue = getComponentValue("a");
-     loopMultipleComponentGlows(["a", "out", ]);
-    processor.movingText = aValue;
-
-    animateMovingText("moving-label", movePaths.aToOut, aValue, () => {
-      updateComponentValue("out", aValue);
-      updateComponentValue("bd", aValue); //
-      stopSpecificGlows(["a", "out"]);
-      processor.movingText = "";
-      console.log("");
-      onComplete();
-    });
   } else {
     onComplete();
   }
+}
+
+function handleT5(instruction: string, done: () => void) {
+  const opcode = processor.opcode;
+
+  const controlSignals = getControlWords(instruction, 5);
+  console.log(`T5 Control Signals: ${controlSignals.join(', ')}`);
+
+  if (opcode === "1111") {
+    console.log("");
+    processor.halted = true;
+    stopSimulation();
+    return;
+  }
+
+  console.log("");
+  loopMultipleComponentGlows(["pc", "mar", ]);
+
+  done();
 }
 
 function getComponentValue(id: string): string {
@@ -495,24 +559,6 @@ function binarySub(a: string, b: string): string {
   const diff = parseInt(a, 2) - parseInt(b, 2);
   return diff.toString(2).padStart(8, "0");
 }
-function handleT5(instruction: string, done: () => void) {
-  const opcode = processor.opcode;
-
-  if (opcode === "1111") {
-    console.log("");
-    processor.halted = true;
-    stopSimulation();
-    return; //
-  }
-
-  console.log("");
- loopMultipleComponentGlows(["pc", "mar", ]);
-
-  done(); //
-}
-
-
-
 
 function setInstruction(bin: string) {
   if (!isValidInstruction(bin)) {
@@ -525,12 +571,10 @@ function setInstruction(bin: string) {
   return true;
 }
 
-
 function updateComponentValue(id: string, value: string) {
   const comp = components.find((c) => c.id === id);
   if (comp) comp.value = value;
 }
-
 
 function testMovePath() {
   const binary = processor.currentInstruction.toString(2).padStart(4, "0");
