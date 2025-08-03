@@ -75,6 +75,7 @@ const processor = reactive({
   invalidInstructionIndex: -1,
   showErrorModal: false,
   simulationDone: false,
+  executionLogs: [] as string[],
 });
 
 const validOpcodes = ["0000", "0001", "0010", "1110", "1111"];
@@ -284,6 +285,7 @@ function resetSimulation() {
   stopAllComponentGlows();
   pauseMovingAnimation();
   components.forEach((c) => (c.value = ""));
+  processor.executionLogs = [];
 
   console.log("");
 }
@@ -312,6 +314,9 @@ function handleT0(instruction: string, onComplete: () => void) {
 
   const controlSignals = getControlWords(instruction, 0);
   console.log(`T0 Control Signals: ${controlSignals.join(', ')}`);
+
+  // Add execution log
+  processor.executionLogs.push(`T0: [${controlSignals.join(', ')}] — PC (${pcValue}) → MAR`);
 
   updateComponentValue("pc", pcValue);
   loopMultipleComponentGlows(["pc", "mar", ]);
@@ -359,9 +364,14 @@ function handleT2(instruction: string, onComplete: () => void) {
   updateComponentValue("pc", newPcValue);
   loopMultipleComponentGlows(["pc"]);
 
+  // Add execution log for PC increment
+  processor.executionLogs.push(`T2: [${controlSignals.join(', ')}] — PC incremented to ${newPcValue}`);
+
   // ⛔ Skip IR→MAR animation for HLT
   if (processor.opcode === "1111") {
     stopSpecificGlows(["pc", "ir", "mar"]);
+    // Add execution log for HLT special case
+    processor.executionLogs.push(`T2: HLT detected — Skipping IR→MAR animation`);
     onComplete();
     return;
   }
@@ -369,6 +379,9 @@ function handleT2(instruction: string, onComplete: () => void) {
   const operand = processor.operand;
   loopMultipleComponentGlows(["ir", "mar"]);
   processor.movingText = operand;
+
+  // Add execution log for operand movement
+  processor.executionLogs.push(`T2: [Ei, Lm] — IR Operand (${operand}) → MAR`);
 
   animateMovingText("moving-label", movePaths.irToMar, operand, () => {
     updateComponentValue("mar", operand);
@@ -391,6 +404,9 @@ function handleT3(instruction: string, onComplete: () => void) {
     console.log("Halting simulation");
     processor.halted = true;
 
+    // Add execution log for HLT
+    processor.executionLogs.push(`T3: [HLT] — Halting processor`);
+
     // Stop any ongoing animations or glows
     stopAllComponentGlows();
     pauseMovingAnimation();
@@ -408,13 +424,21 @@ function handleT3(instruction: string, onComplete: () => void) {
   if (opcode === "0000") {
     target = "a";
     path = movePaths.promToA;
+    // Add execution log for LDA
+    processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — PROM[${parseInt(operand, 2)}] (${fakeMemoryValue}) → A`);
   } else if (opcode === "0001" || opcode === "0010") {
     target = "b";
     path = movePaths.promToB;
+    // Add execution log for ADD/SUB
+    const operation = opcode === "0001" ? "ADD" : "SUB";
+    processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — ${operation}: PROM[${parseInt(operand, 2)}] (${fakeMemoryValue}) → B`);
   } else if (opcode === "1110") {
     const aValue = getComponentValue("a");
     loopMultipleComponentGlows(["a", "out", ]);
     processor.movingText = aValue;
+
+    // Add execution log for OUT
+    processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — OUT: A (${aValue}) → Output`);
 
     animateMovingText("moving-label", movePaths.aToOut, aValue, () => {
       updateComponentValue("out", aValue);
@@ -427,6 +451,7 @@ function handleT3(instruction: string, onComplete: () => void) {
     return;
   } else {
     console.log("T3 skipped (no data fetch required)");
+    processor.executionLogs.push(`T3: No operation`);
     onComplete();
     return;
   }
@@ -456,6 +481,9 @@ function handleT4(instruction: string, onComplete: () => void) {
     const aVal = getComponentValue("a");
     const bVal = getComponentValue("b");
     const result = binaryAdd(aVal, bVal);
+
+    // Add execution log for ADD
+    processor.executionLogs.push(`T4: [${controlSignals.join(', ')}] — ADD: B (${bVal}) + A (${aVal}) = ${result}`);
 
     loopMultipleComponentGlows(["b", ]);
 
@@ -492,6 +520,9 @@ function handleT4(instruction: string, onComplete: () => void) {
     const bVal = getComponentValue("b");
     const result = binarySub(aVal, bVal);
 
+    // Add execution log for SUB
+    processor.executionLogs.push(`T4: [${controlSignals.join(', ')}] — SUB: A (${aVal}) - B (${bVal}) = ${result}`);
+
     loopMultipleComponentGlows(["b", ]);
     processor.movingText = bVal;
     animateMovingText("moving-label", movePaths.bToAlu, bVal, () => {
@@ -522,6 +553,8 @@ function handleT4(instruction: string, onComplete: () => void) {
       }, 300);
     });
   } else {
+    // Add execution log for no operation
+    processor.executionLogs.push(`T4: No operation`);
     onComplete();
   }
 }
@@ -535,8 +568,23 @@ function handleT5(instruction: string, done: () => void) {
   if (opcode === "1111") {
     console.log("");
     processor.halted = true;
+    // Add execution log for HLT
+    processor.executionLogs.push(`T5: [${controlSignals.join(', ')}] — HLT: Processor halted`);
     stopSimulation();
     return;
+  }
+
+  if (opcode === "0001") {
+    // Add execution log for ADD
+    const aVal = getComponentValue("a");
+    processor.executionLogs.push(`T5: [${controlSignals.join(', ')}] — ADD complete, A = ${aVal}`);
+  } else if (opcode === "0010") {
+    // Add execution log for SUB
+    const aVal = getComponentValue("a");
+    processor.executionLogs.push(`T5: [${controlSignals.join(', ')}] — SUB complete, A = ${aVal}`);
+  } else {
+    // Add execution log for other instructions
+    processor.executionLogs.push(`T5: [${controlSignals.join(', ')}] — Instruction cycle complete`);
   }
 
   console.log("");
@@ -607,7 +655,8 @@ defineExpose({
   isPaused,
   isRunning,
   isHalted,
-  currentInstruction: computed(() => processor.currentInstruction)
+  currentInstruction: computed(() => processor.currentInstruction),
+  executionLogs: computed(() => processor.executionLogs),
 });
 
 </script>
