@@ -76,6 +76,7 @@ const processor = reactive({
   showErrorModal: false,
   simulationDone: false,
   executionLogs: [] as string[],
+  activeMemoryAddress: "", // Track which memory address is currently being accessed
 });
 
 const validOpcodes = ["0000", "0001", "0010", "1110", "1111"];
@@ -396,12 +397,14 @@ function handleT3(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode;
   const operand = processor.operand;
 
-  const controlSignals = getControlWords(instruction, 3);
+  // Get control signals for this instruction and T-state
+  const controlSignals = getControlWords(opcode, 3);
   console.log(`T3 Control Signals: ${controlSignals.join(', ')}`);
 
-  // Check for HLT instruction first to prevent any animations
+  // If HLT instruction, halt the processor immediately
   if (opcode === "1111") {
-    console.log("Halting simulation");
+    console.log("HLT instruction detected in T3, halting processor");
+    processor.isRunning = false;
     processor.halted = true;
 
     // Add execution log for HLT
@@ -412,29 +415,44 @@ function handleT3(instruction: string, onComplete: () => void) {
     pauseMovingAnimation();
     processor.movingText = "";
 
+    // Clear activeMemoryAddress
+    processor.activeMemoryAddress = "";
+
     onComplete();
     return;
   }
 
+  // For other instructions, handle memory fetch if needed
   const fakeMemoryValue = memory[operand] || "00000000";
-
   let target = "";
-  let path;
+  let path: { x: number; y: number; }[] = []; // Properly type the path variable
+
+  // Set activeMemoryAddress when memory is accessed
+  if (operand) {
+    // Use binary operand directly for memory address
+    processor.activeMemoryAddress = operand;
+  }
 
   if (opcode === "0000") {
     target = "a";
     path = movePaths.promToA;
+
+    // Debug logs for LDA
+    console.log("DEBUG LDA:");
+    console.log("Operand:", operand);
+    console.log("Resolved Memory Value:", fakeMemoryValue);
+    processor.executionLogs.push(`DEBUG LDA: M[${operand}] = ${fakeMemoryValue}`);
+
     // Add execution log for LDA
-    processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — PROM[${parseInt(operand, 2)}] (${fakeMemoryValue}) → A`);
+    processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — PROM[${operand}] (${fakeMemoryValue}) → A`);
   } else if (opcode === "0001" || opcode === "0010") {
     target = "b";
     path = movePaths.promToB;
-    // Add execution log for ADD/SUB
     const operation = opcode === "0001" ? "ADD" : "SUB";
-    processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — ${operation}: PROM[${parseInt(operand, 2)}] (${fakeMemoryValue}) → B`);
+    processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — ${operation}: PROM[${operand}] (${fakeMemoryValue}) → B`);
   } else if (opcode === "1110") {
     const aValue = getComponentValue("a");
-    loopMultipleComponentGlows(["a", "out", ]);
+    loopMultipleComponentGlows(["a", "out"]);
     processor.movingText = aValue;
 
     // Add execution log for OUT
@@ -445,7 +463,6 @@ function handleT3(instruction: string, onComplete: () => void) {
       updateComponentValue("bd", aValue);
       stopSpecificGlows(["a", "out"]);
       processor.movingText = "";
-      console.log("");
       onComplete();
     });
     return;
@@ -456,17 +473,20 @@ function handleT3(instruction: string, onComplete: () => void) {
     return;
   }
 
-  loopMultipleComponentGlows(["prom", target, ]);
+  // For LDA, ADD, SUB that need memory access
   processor.movingText = fakeMemoryValue;
+  loopMultipleComponentGlows(["prom", target]);
 
   animateMovingText("moving-label", path, fakeMemoryValue, () => {
     updateComponentValue(target, fakeMemoryValue);
     stopSpecificGlows(["prom", target]);
     processor.movingText = "";
 
-    console.log(
-      ``
-    );
+    // Clear activeMemoryAddress after animation completes
+    setTimeout(() => {
+      processor.activeMemoryAddress = "";
+    }, 500); // Keep highlight for a short time after animation
+
     onComplete();
   });
 }
@@ -646,7 +666,7 @@ const isRunning = computed(() => processor.isRunning);
 const isHalted = computed(() => processor.halted);
 
 defineExpose({
-    loadProgramFromFile,
+  loadProgramFromFile,
   runManualStep,
   runAuto,
   resetSimulation,
@@ -657,6 +677,7 @@ defineExpose({
   isHalted,
   currentInstruction: computed(() => processor.currentInstruction),
   executionLogs: computed(() => processor.executionLogs),
+  activeMemoryAddress: computed(() => processor.activeMemoryAddress),
 });
 
 </script>

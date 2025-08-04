@@ -80,7 +80,7 @@ onMounted(fetchSavedProgram);
   <div class="grid grid-cols-2 gap-4">
     <!-- 🧠 Memory Panel -->
     <div class="w-full">
-      <MemoryReference class="w-full" />
+      <MemoryReference class="w-full" :active-memory-address="simRef?.activeMemoryAddress" />
     </div>
 
     <!-- 🔹 Instructions Panel -->
