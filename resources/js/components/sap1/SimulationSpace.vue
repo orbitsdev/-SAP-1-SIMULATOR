@@ -623,10 +623,17 @@ function binaryAdd(a: string, b: string): string {
   return sum.toString(2).padStart(8, "0");
 }
 
+// function binarySub(a: string, b: string): string {
+//   const diff = parseInt(a, 2) - parseInt(b, 2);
+//   return diff.toString(2).padStart(8, "0");
+// }
+
 function binarySub(a: string, b: string): string {
-  const diff = parseInt(a, 2) - parseInt(b, 2);
+  // Wrap result to 8 bits like real hardware
+  const diff = ((parseInt(a, 2) - parseInt(b, 2) + 256) % 256);
   return diff.toString(2).padStart(8, "0");
 }
+
 
 function setInstruction(bin: string) {
   if (!isValidInstruction(bin)) {
