@@ -21,7 +21,7 @@ Before installing, make sure you have the following installed on your system:
 
 ### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/your-repo/sap1-simulator.git
+git clone https://github.com/orbitsdev/-SAP-1-SIMULATOR.git
 cd sap1-simulator
 ```
 
