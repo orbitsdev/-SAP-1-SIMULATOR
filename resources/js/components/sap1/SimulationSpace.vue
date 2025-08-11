@@ -320,12 +320,12 @@ function handleT0(instruction: string, onComplete: () => void) {
   processor.executionLogs.push(`T0: [${controlSignals.join(', ')}] — PC (${pcValue}) → MAR`);
 
   updateComponentValue("pc", pcValue);
-  loopMultipleComponentGlows(["pc", "mar", ]);
+  loopMultipleComponentGlows(["con", "pc", "mar"]);
 
   processor.movingText = pcValue;
   animateMovingText("moving-label", movePaths.pcToMar, pcValue, () => {
     updateComponentValue("mar", pcValue);
-    stopSpecificGlows(["pc", "mar"]);
+    stopSpecificGlows(["con", "pc", "mar"]);
     processor.movingText = "";
 
     console.log("");
@@ -341,12 +341,12 @@ function handleT1(instruction: string, onComplete: () => void) {
   console.log(`T1 Control Signals: ${controlSignals.join(', ')}`);
 
   updateComponentValue("prom", instructionAtMar);
-  loopMultipleComponentGlows(["prom", "ir", ]);
+  loopMultipleComponentGlows(["con", "prom", "ir"]);
 
   processor.movingText = instructionAtMar;
   animateMovingText("moving-label", movePaths.promToIr, instructionAtMar, () => {
     updateComponentValue("ir", instructionAtMar);
-    stopSpecificGlows(["prom", "ir"]);
+    stopSpecificGlows(["con", "prom", "ir"]);
     processor.movingText = "";
 
     setInstruction(instructionAtMar);
@@ -363,14 +363,14 @@ function handleT2(instruction: string, onComplete: () => void) {
 
   const newPcValue = (processor.currentInstruction + 1).toString(2).padStart(4, "0");
   updateComponentValue("pc", newPcValue);
-  loopMultipleComponentGlows(["pc"]);
+  loopMultipleComponentGlows(["con", "pc"]);
 
   // Add execution log for PC increment
   processor.executionLogs.push(`T2: [${controlSignals.join(', ')}] — PC incremented to ${newPcValue}`);
 
   // ⛔ Skip IR→MAR animation for HLT
   if (processor.opcode === "1111") {
-    stopSpecificGlows(["pc", "ir", "mar"]);
+    stopSpecificGlows(["con", "pc", "ir", "mar"]);
     // Add execution log for HLT special case
     processor.executionLogs.push(`T2: HLT detected — Skipping IR→MAR animation`);
     onComplete();
@@ -378,7 +378,7 @@ function handleT2(instruction: string, onComplete: () => void) {
   }
 
   const operand = processor.operand;
-  loopMultipleComponentGlows(["ir", "mar"]);
+  loopMultipleComponentGlows(["con", "ir", "mar"]);
   processor.movingText = operand;
 
   // Add execution log for operand movement
@@ -386,7 +386,7 @@ function handleT2(instruction: string, onComplete: () => void) {
 
   animateMovingText("moving-label", movePaths.irToMar, operand, () => {
     updateComponentValue("mar", operand);
-    stopSpecificGlows(["ir", "mar", "pc"]);
+    stopSpecificGlows(["con", "ir", "mar", "pc"]);
     processor.movingText = "";
     onComplete();
   });
@@ -452,7 +452,7 @@ function handleT3(instruction: string, onComplete: () => void) {
     processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — ${operation}: PROM[${operand}] (${fakeMemoryValue}) → B`);
   } else if (opcode === "1110") {
     const aValue = getComponentValue("a");
-    loopMultipleComponentGlows(["a", "out"]);
+    loopMultipleComponentGlows(["con", "a", "out"]);
     processor.movingText = aValue;
 
     // Add execution log for OUT
@@ -461,7 +461,7 @@ function handleT3(instruction: string, onComplete: () => void) {
     animateMovingText("moving-label", movePaths.aToOut, aValue, () => {
       updateComponentValue("out", aValue);
       updateComponentValue("bd", aValue);
-      stopSpecificGlows(["a", "out"]);
+      stopSpecificGlows(["con", "a", "out"]);
       processor.movingText = "";
       onComplete();
     });
@@ -469,17 +469,19 @@ function handleT3(instruction: string, onComplete: () => void) {
   } else {
     console.log("T3 skipped (no data fetch required)");
     processor.executionLogs.push(`T3: No operation`);
+    // Stop con glow for no-op case
+    stopSpecificGlows(["con"]);
     onComplete();
     return;
   }
 
   // For LDA, ADD, SUB that need memory access
   processor.movingText = fakeMemoryValue;
-  loopMultipleComponentGlows(["prom", target]);
+  loopMultipleComponentGlows(["con", "prom", target]);
 
   animateMovingText("moving-label", path, fakeMemoryValue, () => {
     updateComponentValue(target, fakeMemoryValue);
-    stopSpecificGlows(["prom", target]);
+    stopSpecificGlows(["con", "prom", target]);
     processor.movingText = "";
 
     // Clear activeMemoryAddress after animation completes
@@ -505,7 +507,7 @@ function handleT4(instruction: string, onComplete: () => void) {
     // Add execution log for ADD
     processor.executionLogs.push(`T4: [${controlSignals.join(', ')}] — ADD: B (${bVal}) + A (${aVal}) = ${result}`);
 
-    loopMultipleComponentGlows(["b", ]);
+    loopMultipleComponentGlows(["con", "b"]);
 
     processor.movingText = bVal;
     animateMovingText("moving-label", movePaths.bToAlu, bVal, () => {
@@ -524,7 +526,7 @@ function handleT4(instruction: string, onComplete: () => void) {
           setTimeout(() => {
             processor.movingText = result;
             animateMovingText("moving-label", movePaths.aluToA, result, () => {
-              stopSpecificGlows(["alu"]);
+              stopSpecificGlows(["con", "alu"]);
               updateComponentValue("a", result);
               animateHighlightAndGlow("a");
               processor.movingText = "";
@@ -543,7 +545,7 @@ function handleT4(instruction: string, onComplete: () => void) {
     // Add execution log for SUB
     processor.executionLogs.push(`T4: [${controlSignals.join(', ')}] — SUB: A (${aVal}) - B (${bVal}) = ${result}`);
 
-    loopMultipleComponentGlows(["b", ]);
+    loopMultipleComponentGlows(["con", "b"]);
     processor.movingText = bVal;
     animateMovingText("moving-label", movePaths.bToAlu, bVal, () => {
       stopSpecificGlows(["b"]);
@@ -561,7 +563,7 @@ function handleT4(instruction: string, onComplete: () => void) {
           setTimeout(() => {
             processor.movingText = result;
             animateMovingText("moving-label", movePaths.aluToA, result, () => {
-              stopSpecificGlows(["alu"]);
+              stopSpecificGlows(["con", "alu"]);
               updateComponentValue("a", result);
               animateHighlightAndGlow("a");
               processor.movingText = "";
@@ -575,6 +577,8 @@ function handleT4(instruction: string, onComplete: () => void) {
   } else {
     // Add execution log for no operation
     processor.executionLogs.push(`T4: No operation`);
+    // Stop con glow for no-op case
+    stopSpecificGlows(["con"]);
     onComplete();
   }
 }
@@ -608,9 +612,12 @@ function handleT5(instruction: string, done: () => void) {
   }
 
   console.log("");
-  loopMultipleComponentGlows(["pc", "mar", ]);
+  loopMultipleComponentGlows(["con", "pc", "mar"]);
 
-  done();
+  setTimeout(() => {
+    stopSpecificGlows(["con", "pc", "mar"]);
+    done();
+  }, 500);
 }
 
 function getComponentValue(id: string): string {
@@ -695,24 +702,10 @@ defineExpose({
     class="relative grid grid-cols-16 gap-px w-full h-full"
     style="grid-template-columns: repeat(16, 45px); grid-template-rows: repeat(16, 48px)"
   >
-    <!-- <div
-      class="absolute top-2 right-2 z-50 bg-white/90 px-4 py-2 rounded shadow text-sm font-mono"
-    >
-      <span class="text-gray-500">Now Running:</span>
-      <span class="font-bold text-blue-700">{{ processor.instruction }}</span>
-    </div> -->
 
-    <!-- <div class="absolute top-2 left-2 z-50 flex flex-col gap-2 bg-white/80 p-3 rounded shadow">
-
-     <button @click="testMovePath">Test Move Path</button>
-
-
-    </div> -->
-
-    <!--  -->
     <MovingLabel id="moving-label" :text="processor.movingText" />
 
-    <!--  -->
+
     <Arrow
       v-for="(arrow, index) in arrows"
       :key="index"
@@ -725,7 +718,7 @@ defineExpose({
       :headSize="arrow.headSize"
     />
 
-    <!--  -->
+
     <div
       :style="{
         gridColumnStart: 7,
@@ -737,7 +730,7 @@ defineExpose({
       <Bus title="8" />
     </div>
 
-    <!--  -->
+    
     <Box
       v-for="c in components"
       :key="c.id"
