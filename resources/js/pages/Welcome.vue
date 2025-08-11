@@ -6,14 +6,17 @@ import axios from 'axios';
 import { computed, onMounted, ref } from 'vue';
 import MemoryReference from '../components/sap1/MemoryReference.vue';
 import SimulationSpace from '../components/sap1/SimulationSpace.vue';
+
 import UploadModal from '../components/sap1/UploadModal.vue';
 import ExecutionLog from '../components/sap1/ExecutionLog.vue';
+import GridGuideLine from '../components/sap1/GridGuideLine.vue';
 
 const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null);
 const uploadDialogOpen = ref(false);
 const uploadedInstructions = ref<string[]>([]);
 const errorDialogOpen = ref(false);
 const errorMessage = ref('');
+const showGuideLine = ref(false);
 
 const hasProgram = computed(() => uploadedInstructions.value.length > 0);
 
@@ -148,11 +151,12 @@ onMounted(fetchSavedProgram);
       <section class="col-span-3 flex flex-col items-center bg-white p-6 rounded-lg border">
         <!-- Simulation canvas (adjust to fill available space) -->
         <div class="relative mb-6 w-full max-w-[720px] h-[768px]">
+          <GridGuideLine class="absolute inset-0 z-0 pointer-events-none" v-if="showGuideLine" />
           <SimulationSpace ref="simRef" class="absolute inset-0 z-10" />
         </div>
 
         <!-- Simulation Controls -->
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap gap-3 items-center">
           <Button variant="default" @click="simRef?.runManualStep()" :disabled="!hasProgram || simRef?.isHalted">Manual</Button>
           <Button variant="default" @click="simRef?.runAuto()" :disabled="!hasProgram || simRef?.isHalted || simRef?.isRunning">Auto</Button>
           <Button
@@ -163,6 +167,7 @@ onMounted(fetchSavedProgram);
             {{ simRef?.isPaused ? 'Resume' : 'Pause' }}
           </Button>
           <Button variant="default" @click="simRef?.resetSimulation()" :disabled="!hasProgram">Reset</Button>
+          <Button variant="secondary" @click="showGuideLine = !showGuideLine">{{ showGuideLine ? 'Hide Grid' : 'Show Grid' }}</Button>
         </div>
 
         <!-- Upload Modal -->
