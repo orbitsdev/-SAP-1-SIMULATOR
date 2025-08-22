@@ -123,16 +123,32 @@ function runManualStep() {
     processor.currentStep++;
     runManualStep();
   };
+  
+  // Function to complete the manual step and reset isRunning
+  const completeManualStep = () => {
+    // Reset isRunning to false after the step is complete
+    // This allows switching between manual and auto modes
+    processor.isRunning = false;
+  };
 
   switch (step) {
     case 0:
-      handleT0(instruction, () => processor.currentStep++);
+      handleT0(instruction, () => {
+        processor.currentStep++;
+        completeManualStep();
+      });
       break;
     case 1:
-      handleT1(instruction, () => processor.currentStep++);
+      handleT1(instruction, () => {
+        processor.currentStep++;
+        completeManualStep();
+      });
       break;
     case 2:
-      handleT2(instruction, () => processor.currentStep++);
+      handleT2(instruction, () => {
+        processor.currentStep++;
+        completeManualStep();
+      });
       break;
     case 3:
       handleT3(instruction, () => {
@@ -142,6 +158,7 @@ function runManualStep() {
         } else {
           stopSimulation();
         }
+        completeManualStep();
       });
       break;
     case 4:
@@ -151,8 +168,12 @@ function runManualStep() {
         return;
       }
       handleT4(instruction, () => {
-        if (["0000", "1111"].includes(processor.opcode)) proceed();
-        else processor.currentStep++;
+        if (["0000", "1111"].includes(processor.opcode)) {
+          proceed();
+        } else {
+          processor.currentStep++;
+          completeManualStep();
+        }
       });
       break;
    case 5:
@@ -167,6 +188,7 @@ function runManualStep() {
         if (!processor.halted) {
           processor.currentInstruction++;
         }
+        completeManualStep();
       });
       break;
   }
