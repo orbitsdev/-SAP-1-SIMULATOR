@@ -49,6 +49,7 @@ onMounted(async () => {
     if (res.data.exists) {
       program.value = res.data.lines.filter((l: string) => /^[01]{8}$/.test(l.trim()))
       hasProgram.value = true
+      console.log('Loaded program instructions:', program.value)
     } else {
       hasProgram.value = false
     }
@@ -77,6 +78,8 @@ const processor = reactive({
   simulationDone: false,
   executionLogs: [] as string[],
   activeMemoryAddress: "", // Track which memory address is currently being accessed
+  tempMemoryValue: "", // Temporary storage for memory value between T3 and T4
+  tempMemoryDisplay: "" // Temporary storage for memory display value between T3 and T4
 });
 
 const validOpcodes = ["0000", "0001", "0010", "1110", "1111"];
@@ -282,6 +285,8 @@ function resetSimulation() {
   processor.invalidInstructionIndex = -1;
   processor.showErrorModal = false;
   processor.simulationDone = false;
+  processor.tempMemoryValue = "";
+  processor.tempMemoryDisplay = "";
 
   stopAllComponentGlows();
   pauseMovingAnimation();
@@ -331,14 +336,21 @@ function handleT0(instruction: string, onComplete: () => void) {
     console.log("");
 
     onComplete();
-  });
+});
 }
 
 function handleT1(instruction: string, onComplete: () => void) {
   const instructionAtMar = program.value[processor.currentInstruction];
 
+  console.log('Current program:', program.value);
+  console.log('Current instruction index:', processor.currentInstruction);
+  console.log('Current instruction value:', instructionAtMar);
+
   const controlSignals = getControlWords(instruction, 1);
   console.log(`T1 Control Signals: ${controlSignals.join(', ')}`);
+
+  // Add execution log for T1
+  processor.executionLogs.push(`T1: [${controlSignals.join(', ')}] — Memory[MAR] (${instructionAtMar}) → IR`);
 
   updateComponentValue("prom", instructionAtMar);
   loopMultipleComponentGlows(["con", "prom", "ir"]);
@@ -366,30 +378,15 @@ function handleT2(instruction: string, onComplete: () => void) {
   loopMultipleComponentGlows(["con", "pc"]);
 
   // Add execution log for PC increment
-  processor.executionLogs.push(`T2: [${controlSignals.join(', ')}] — PC incremented to ${newPcValue}`);
+  const pcIncrementSignals = ['Cp'];
+  processor.executionLogs.push(`T2: [${pcIncrementSignals.join(', ')}] — PC incremented to ${newPcValue}`);
 
-  // ⛔ Skip IR→MAR animation for HLT
-  if (processor.opcode === "1111") {
-    stopSpecificGlows(["con", "pc", "ir", "mar"]);
-    // Add execution log for HLT special case
-    processor.executionLogs.push(`T2: HLT detected — Skipping IR→MAR animation`);
+  // No operand movement in T2 according to the diagram, just PC increment
+  // Wait a short time to show the PC glow, then complete
+  setTimeout(() => {
+    stopSpecificGlows(["con", "pc"]);
     onComplete();
-    return;
-  }
-
-  const operand = processor.operand;
-  loopMultipleComponentGlows(["con", "ir", "mar"]);
-  processor.movingText = operand;
-
-  // Add execution log for operand movement
-  processor.executionLogs.push(`T2: [Ei, Lm] — IR Operand (${operand}) → MAR`);
-
-  animateMovingText("moving-label", movePaths.irToMar, operand, () => {
-    updateComponentValue("mar", operand);
-    stopSpecificGlows(["con", "ir", "mar", "pc"]);
-    processor.movingText = "";
-    onComplete();
-  });
+  }, 500);
 }
 
 
@@ -420,43 +417,15 @@ function handleT3(instruction: string, onComplete: () => void) {
 
     onComplete();
     return;
-  }
-
-  // For other instructions, handle memory fetch if needed
-  const fakeMemoryValue = memory[operand] || "00000000";
-  let target = "";
-  let path: { x: number; y: number; }[] = []; // Properly type the path variable
-
-  // Set activeMemoryAddress when memory is accessed
-  if (operand) {
-    // Use binary operand directly for memory address
-    processor.activeMemoryAddress = operand;
-  }
-
-  if (opcode === "0000") {
-    target = "a";
-    path = movePaths.promToA;
-
-    // Debug logs for LDA
-    console.log("DEBUG LDA:");
-    console.log("Operand:", operand);
-    console.log("Resolved Memory Value:", fakeMemoryValue);
-    processor.executionLogs.push(`DEBUG LDA: M[${operand}] = ${fakeMemoryValue}`);
-
-    // Add execution log for LDA
-    processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — PROM[${operand}] (${fakeMemoryValue}) → A`);
-  } else if (opcode === "0001" || opcode === "0010") {
-    target = "b";
-    path = movePaths.promToB;
-    const operation = opcode === "0001" ? "ADD" : "SUB";
-    processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — ${operation}: PROM[${operand}] (${fakeMemoryValue}) → B`);
   } else if (opcode === "1110") {
+    // OUT instruction - directly move from A to Output
     const aValue = getComponentValue("a");
     loopMultipleComponentGlows(["con", "a", "out"]);
     processor.movingText = aValue;
 
-    // Add execution log for OUT
-    processor.executionLogs.push(`T3: [${controlSignals.join(', ')}] — OUT: A (${aValue}) → Output`);
+    // Add execution log for OUT with correct control signals from diagram
+    const outControlSignals = ['EaLo'];
+    processor.executionLogs.push(`T3: [${outControlSignals.join(', ')}] — OUT: A (${aValue}) → Output`);
 
     animateMovingText("moving-label", movePaths.aToOut, aValue, () => {
       updateComponentValue("out", aValue);
@@ -466,32 +435,75 @@ function handleT3(instruction: string, onComplete: () => void) {
       onComplete();
     });
     return;
-  } else {
-    console.log("T3 skipped (no data fetch required)");
-    processor.executionLogs.push(`T3: No operation`);
-    // Stop con glow for no-op case
-    stopSpecificGlows(["con"]);
-    onComplete();
-    return;
   }
 
-  // For LDA, ADD, SUB that need memory access
-  processor.movingText = fakeMemoryValue;
-  loopMultipleComponentGlows(["con", "prom", target]);
+  // For LDA, ADD, SUB instructions
+  // According to the diagram, T3 sets MAR from operand and accesses memory
+  loopMultipleComponentGlows(["con", "mar"]);
 
-  animateMovingText("moving-label", path, fakeMemoryValue, () => {
-    updateComponentValue(target, fakeMemoryValue);
-    stopSpecificGlows(["con", "prom", target]);
-    processor.movingText = "";
+  // Set MAR and highlight memory address
+  updateComponentValue("mar", operand);
+  processor.activeMemoryAddress = operand;
 
-    // Clear activeMemoryAddress after animation completes
+  // Add execution log for MAR setting with correct control signals from diagram
+  const marControlSignals = ['LmEi'];
+  processor.executionLogs.push(`T3: [${marControlSignals.join(', ')}] — MAR set to ${operand}`);
+
+  // Get memory value
+  const memoryExists = operand in memory;
+  const fakeMemoryValue = memoryExists ? memory[operand] : "00000000";
+  const memoryValueDisplay = memoryExists ? fakeMemoryValue : `${fakeMemoryValue} (default)`;
+
+  // Now handle the specific instruction type
+  if (opcode === "0000") { // LDA
+    // For LDA, in T3 we only set MAR and prepare for memory access in T4
+    // Debug logs for LDA
+    console.log("DEBUG LDA:");
+    console.log("Operand:", operand);
+    console.log("Resolved Memory Value:", fakeMemoryValue);
+    processor.executionLogs.push(`DEBUG LDA: M[${operand}] = ${memoryValueDisplay}`);
+    
+    // Store memory value for T4 to use
+    processor.tempMemoryValue = fakeMemoryValue;
+    processor.tempMemoryDisplay = memoryValueDisplay;
+    
+    // Clear activeMemoryAddress after a short delay
     setTimeout(() => {
       processor.activeMemoryAddress = "";
-    }, 500); // Keep highlight for a short time after animation
-
+    }, 500);
+    
     onComplete();
-  });
+
+  } else if (opcode === "0001" || opcode === "0010") { // ADD or SUB
+    // For ADD/SUB, memory value goes to B register
+    const operation = opcode === "0001" ? "ADD" : "SUB";
+    loopMultipleComponentGlows(["con", "prom", "b"]);
+    processor.movingText = fakeMemoryValue;
+
+    // Add execution log for memory access
+    processor.executionLogs.push(`T3: [LmEi] — ${operation}: PROM[${operand}] (${memoryValueDisplay}) → B`);
+
+    animateMovingText("moving-label", movePaths.promToB, fakeMemoryValue, () => {
+      updateComponentValue("b", fakeMemoryValue);
+      stopSpecificGlows(["con", "prom", "b"]);
+      processor.movingText = "";
+
+      // Clear activeMemoryAddress after animation completes
+      setTimeout(() => {
+        processor.activeMemoryAddress = "";
+      }, 500); // Keep highlight for a short time after animation
+
+      onComplete();
+    });
+  } else {
+    // For any other instructions
+    console.log("T3 skipped (no data fetch required)");
+    processor.executionLogs.push(`T3: No operation`);
+    stopSpecificGlows(["con"]);
+    onComplete();
+  }
 }
+
 
 function handleT4(instruction: string, onComplete: () => void) {
   const opcode = processor.opcode;
@@ -499,7 +511,25 @@ function handleT4(instruction: string, onComplete: () => void) {
   const controlSignals = getControlWords(instruction, 4);
   console.log(`T4 Control Signals: ${controlSignals.join(', ')}`);
 
-  if (opcode === "0001") {
+  if (opcode === "0000") { // LDA
+    // For LDA, T4 is when memory value is loaded into A register
+    const memoryValue = processor.tempMemoryValue || "00000000";
+    const memoryDisplay = processor.tempMemoryDisplay || memoryValue;
+    
+    // Add execution log for memory access
+    const ldaControlSignals = ['ErLa'];
+    processor.executionLogs.push(`T4: [${ldaControlSignals.join(', ')}] — LDA: Memory[MAR] (${memoryDisplay}) → A`);
+    
+    loopMultipleComponentGlows(["con", "prom", "a"]);
+    processor.movingText = memoryValue;
+    
+    animateMovingText("moving-label", movePaths.promToA, memoryValue, () => {
+      updateComponentValue("a", memoryValue);
+      stopSpecificGlows(["con", "prom", "a"]);
+      processor.movingText = "";
+      onComplete();
+    });
+  } else if (opcode === "0001") {
     const aVal = getComponentValue("a");
     const bVal = getComponentValue("b");
     const result = binaryAdd(aVal, bVal);
@@ -730,7 +760,7 @@ defineExpose({
       <Bus title="8" />
     </div>
 
-    
+
     <Box
       v-for="c in components"
       :key="c.id"
