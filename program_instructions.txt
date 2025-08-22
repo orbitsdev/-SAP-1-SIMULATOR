@@ -1,0 +1,5 @@
+00001001 # LDA 9: Load value from memory address 9 into accumulator
+00011010 # ADD A: Add value from memory address A (10 decimal) to accumulator
+00101011 # SUB B: Subtract value from memory address B (11 decimal) from accumulator
+11100000 # OUT: Output the value in accumulator to output register
+11110000 # HLT: Halt the processor (stop execution)
