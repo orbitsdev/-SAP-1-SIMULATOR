@@ -10,6 +10,7 @@ import SimulationSpace from '../components/sap1/SimulationSpace.vue';
 import UploadModal from '../components/sap1/UploadModal.vue';
 import ExecutionLog from '../components/sap1/ExecutionLog.vue';
 import GridGuideLine from '../components/sap1/GridGuideLine.vue';
+import ControlSignals from '../components/sap1/ControlSignals.vue';
 
 const simRef = ref<InstanceType<typeof SimulationSpace> | null>(null);
 const uploadDialogOpen = ref(false);
@@ -102,7 +103,16 @@ onMounted(fetchSavedProgram);
         </div>
       </div>
 
-      <!-- // add control signal that lgihts here ? -->
+      <!-- Control Signals Panel -->      
+      <div class="mt-6 border border-gray-200 rounded-lg p-2 bg-gray-50">
+        <h2 class="mb-2 text-xs font-semibold text-gray-800 uppercase tracking-wide">Control Signals</h2>
+        <ControlSignals 
+          :opcode="uploadedInstructions[simRef?.currentInstruction || 0]?.slice(0, 4) || '0000'" 
+          :t-state="simRef?.currentStep || 0" 
+          :is-running="!!simRef?.isRunning" 
+          class="text-[10px] scale-90 origin-top-left"
+        />
+      </div>
       <h2 class="mb-3 text-sm font-semibold text-gray-800 uppercase tracking-wide mt-6 flex items-center">
         <span class="mr-2">Loaded Instructions</span>
         <span v-if="simRef?.isRunning" class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>

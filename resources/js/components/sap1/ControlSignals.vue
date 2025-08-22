@@ -60,53 +60,63 @@ const activeSignals = computed(() => {
   if (props.tState <= 2) {
     return fetchCycleSignals;
   } else {
-    return executeCycleSignals[currentInstruction.value] || [];
+    const instruction = currentInstruction.value as keyof typeof executeCycleSignals;
+    return executeCycleSignals[instruction] || [];
   }
 });
 
 const activeTState = computed(() => {
   return `T${props.tState}`;
 });
-</script>
 
+// Function to check if a signal is active based on current T-state and instruction
+const isSignalActive = (signal: string): boolean => {
+  // Always show active signals during simulation, regardless of running state
+  const tState = props.tState;
+  const tStateKey = `T${tState}`;
+  
+  // Check fetch cycle signals (T0-T2)
+  if (tState <= 2) {
+    const fetchSignals = fetchCycleSignals.find((s: {state: string; signals: string[]}) => s.state === tStateKey);
+    if (fetchSignals) {
+      // Check if the signal is in the active signals list or if it's the CON signal
+      return fetchSignals.signals.includes(signal) || signal === 'CON';
+    }
+  }
+
+  // Check execute cycle signals (T3-T5)
+  const instruction = currentInstruction.value;
+  // Make sure instruction is one of the valid keys
+  if (instruction === 'LDA' || instruction === 'ADD' || instruction === 'SUB' || 
+      instruction === 'OUT' || instruction === 'HLT') {
+    // Use type assertion to tell TypeScript this is a valid key
+    const executeSignals = executeCycleSignals[instruction as keyof typeof executeCycleSignals];
+    if (executeSignals) {
+      const signalSet = executeSignals.find((s: {state: string; signals: string[]}) => s.state === tStateKey);
+      if (signalSet) {
+        // Check if the signal is in the active signals list or if it's the CON signal
+        return signalSet.signals.includes(signal) || signal === 'CON';
+      }
+    }
+  }
+
+  return false;
+}
+</script>
 <template>
   <div class="control-signals-container" v-bind="$attrs">
-    <div class="fetch-cycle">
-      <h2 class="text-2xl font-bold mb-2 border-b pb-1">Fetch Cycle</h2>
-      <div v-for="(signal, index) in fetchCycleSignals" :key="index" 
-           class="signal-row" 
-           :class="{ 'active': props.tState <= 2 && `T${props.tState}` === signal.state }">
-        <div class="t-state">{{ signal.state }}</div>
-        <div class="signal-details">
-          <div v-for="(sig, i) in signal.signals" :key="i" class="signal-item">
-            {{ sig }}
-          </div>
-          <div class="signal-description">{{ signal.description }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="execute-cycle">
-      <h2 class="text-2xl font-bold mb-2 mt-4 border-b pb-1">Execute Cycle</h2>
-      <div class="instruction-header">
-        <h3 class="text-xl font-semibold">{{ currentInstruction }}</h3>
-      </div>
-      <div v-if="executeCycleSignals[currentInstruction]">
-        <div v-for="(signal, index) in executeCycleSignals[currentInstruction]" :key="index"
-             class="signal-row"
-             :class="{ 'active': props.tState > 2 && `T${props.tState}` === signal.state }">
-          <div class="t-state">{{ signal.state }}</div>
-          <div class="signal-details">
-            <div v-for="(sig, i) in signal.signals" :key="i" class="signal-item">
-              {{ sig }}
-            </div>
-            <div class="signal-description">{{ signal.description }}</div>
-          </div>
-        </div>
-      </div>
-      <div v-else class="no-instruction">
-        Select an instruction to view execution cycle
-      </div>
+    <!-- Control Signal Words -->
+    <div class="grid grid-cols-5 gap-1">
+      <div class="signal-word" :class="{ 'active': isSignalActive('EpLm') }">EpLm</div>
+      <div class="signal-word" :class="{ 'active': isSignalActive('ErLi') }">ErLi</div>
+      <div class="signal-word" :class="{ 'active': isSignalActive('Cp') }">Cp</div>
+      <div class="signal-word" :class="{ 'active': isSignalActive('LmEi') }">LmEi</div>
+      <div class="signal-word" :class="{ 'active': isSignalActive('ErLa') }">ErLa</div>
+      <div class="signal-word" :class="{ 'active': isSignalActive('ErLb') }">ErLb</div>
+      <div class="signal-word" :class="{ 'active': isSignalActive('LaEu') }">LaEu</div>
+      <div class="signal-word" :class="{ 'active': isSignalActive('LaSuEu') }">LaSuEu</div>
+      <div class="signal-word" :class="{ 'active': isSignalActive('EaLo') }">EaLo</div>
+      <div class="signal-word" :class="{ 'active': isSignalActive('HLT') }">HLT</div>
     </div>
   </div>
 </template>
@@ -114,58 +124,52 @@ const activeTState = computed(() => {
 <style scoped>
 .control-signals-container {
   font-family: system-ui, -apple-system, sans-serif;
-  padding: 1rem;
-  background-color: #f8f9fa;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 0.25rem;
+  background-color: transparent;
 }
 
-.signal-row {
-  display: flex;
-  margin-bottom: 0.5rem;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-}
-
-.signal-row.active {
-  background-color: #e9f5ff;
-  border-left: 4px solid #3b82f6;
-}
-
-.t-state {
-  font-weight: bold;
-  width: 3rem;
-  flex-shrink: 0;
-}
-
-.signal-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+.signal-word {
+  display: inline-flex;
   align-items: center;
-}
-
-.signal-item {
-  background-color: #e2e8f0;
-  padding: 0.25rem 0.5rem;
+  justify-content: center;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
   border-radius: 0.25rem;
-  font-family: monospace;
-  font-size: 0.9rem;
-}
-
-.signal-description {
-  margin-left: 0.5rem;
-  color: #4b5563;
+  padding: 0.15rem 0.1rem;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: #64748b;
+  text-align: center;
   font-family: monospace;
 }
 
-.no-instruction {
-  color: #6b7280;
-  font-style: italic;
-  padding: 1rem 0;
+.signal-word.active {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
 }
 
-.instruction-header {
-  margin-bottom: 0.5rem;
+.t-state-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.25rem;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: #64748b;
+  min-width: 1.2rem;
+  text-align: center;
+}
+
+.t-state-box.active {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+  font-weight: 600;
 }
 </style>

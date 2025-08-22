@@ -95,6 +95,10 @@ function runManualStep() {
     return;
   }
 
+  // Set isRunning to true for manual mode as well
+  processor.isRunning = true;
+  processor.type = "manual";
+
   const instruction = program.value[processor.currentInstruction];
 
   if (!isValidInstruction(instruction)) {
@@ -356,7 +360,7 @@ function handleT1(instruction: string, onComplete: () => void) {
   // Check if this is a HLT instruction for better logging
   const isHltInstruction = instructionAtMar.slice(0, 4) === "1111";
   const instructionType = isHltInstruction ? "HLT" : instructionAtMar;
-  
+
   // Add execution log for T1
   processor.executionLogs.push(`T1: [${controlSignals.join(', ')}] — Memory[MAR] (${instructionType}) → IR`);
 
@@ -370,7 +374,7 @@ function handleT1(instruction: string, onComplete: () => void) {
     processor.movingText = "";
 
     setInstruction(instructionAtMar);
-    
+
     // Add additional log for HLT instruction decode
     if (isHltInstruction) {
       console.log("HLT instruction detected in IR");
@@ -393,7 +397,7 @@ function handleT2(instruction: string, onComplete: () => void) {
   // Check if this is a HLT instruction for better logging
   const isHltInstruction = processor.opcode === "1111";
   const instructionType = isHltInstruction ? "HLT" : instruction;
-  
+
   // Add execution log for PC increment
   const pcIncrementSignals = ['Cp'];
   if (isHltInstruction) {
@@ -428,7 +432,7 @@ function handleT3(instruction: string, onComplete: () => void) {
     // Add execution log for HLT with proper control signal
     const hltControlSignals = ['HLT'];
     processor.executionLogs.push(`T3: [${hltControlSignals.join(', ')}] — HLT: Processor halted`);
-    
+
     // Highlight control unit to show HLT signal
     loopMultipleComponentGlows(["con"]);
     setTimeout(() => {
@@ -436,10 +440,10 @@ function handleT3(instruction: string, onComplete: () => void) {
       stopAllComponentGlows();
       pauseMovingAnimation();
       processor.movingText = "";
-      
+
       // Clear activeMemoryAddress
       processor.activeMemoryAddress = "";
-      
+
       onComplete();
     }, 500);
     return;
@@ -487,35 +491,35 @@ function handleT3(instruction: string, onComplete: () => void) {
     console.log("DEBUG LDA:");
     console.log("Operand:", operand);
     console.log("Resolved Memory Value:", fakeMemoryValue);
-    processor.executionLogs.push(`DEBUG LDA: M[${operand}] = ${memoryValueDisplay}`);
-    
+
+
     // Store memory value for T4 to use
     processor.tempMemoryValue = fakeMemoryValue;
     processor.tempMemoryDisplay = memoryValueDisplay;
-    
+
     // Clear activeMemoryAddress after a short delay
     setTimeout(() => {
       processor.activeMemoryAddress = "";
     }, 500);
-    
+
     onComplete();
 
   } else if (opcode === "0001" || opcode === "0010") { // ADD or SUB
     // For ADD/SUB, T3 only sets MAR with operand (no data movement to B yet)
     const operation = opcode === "0001" ? "ADD" : "SUB";
-    
+
     // Add execution log for MAR setting with correct control signals
     processor.executionLogs.push(`T3: [LmEi] — ${operation}: MAR set to ${operand}`);
-    
+
     // Store memory value for T4 to use
     processor.tempMemoryValue = fakeMemoryValue;
     processor.tempMemoryDisplay = memoryValueDisplay;
-    
+
     // Clear activeMemoryAddress after a short delay
     setTimeout(() => {
       processor.activeMemoryAddress = "";
     }, 500);
-    
+
     onComplete();
   } else {
     // For any other instructions
@@ -537,14 +541,14 @@ function handleT4(instruction: string, onComplete: () => void) {
     // For LDA, T4 is when memory value is loaded into A register
     const memoryValue = processor.tempMemoryValue || "00000000";
     const memoryDisplay = processor.tempMemoryDisplay || memoryValue;
-    
+
     // Add execution log for memory access
     const ldaControlSignals = ['ErLa'];
     processor.executionLogs.push(`T4: [${ldaControlSignals.join(', ')}] — LDA: Memory[MAR] (${memoryDisplay}) → A`);
-    
+
     loopMultipleComponentGlows(["con", "prom", "a"]);
     processor.movingText = memoryValue;
-    
+
     animateMovingText("moving-label", movePaths.promToA, memoryValue, () => {
       updateComponentValue("a", memoryValue);
       stopSpecificGlows(["con", "prom", "a"]);
@@ -593,14 +597,14 @@ function handleT4(instruction: string, onComplete: () => void) {
     // For SUB, T4 is when memory value is loaded into B register
     const memoryValue = processor.tempMemoryValue || "00000000";
     const memoryDisplay = processor.tempMemoryDisplay || memoryValue;
-    
+
     // Add execution log for memory access to B register
     const subControlSignals = ['ErLb'];
     processor.executionLogs.push(`T4: [${subControlSignals.join(', ')}] — SUB: Memory[MAR] (${memoryDisplay}) → B`);
-    
+
     loopMultipleComponentGlows(["con", "prom", "b"]);
     processor.movingText = memoryValue;
-    
+
     animateMovingText("moving-label", movePaths.promToB, memoryValue, () => {
       updateComponentValue("b", memoryValue);
       stopSpecificGlows(["con", "prom", "b"]);
@@ -636,13 +640,13 @@ function handleT5(instruction: string, done: () => void) {
     const aVal = getComponentValue("a");
     const bVal = getComponentValue("b");
     const result = binaryAdd(aVal, bVal);
-    
+
     // Add execution log for ADD with correct control signals
     const addControlSignals = ['LaEu'];
     processor.executionLogs.push(`T5: [${addControlSignals.join(', ')}] — ADD: A (${aVal}) + B (${bVal}) = ${result}`);
-    
+
     loopMultipleComponentGlows(["con", "a", "b", "alu"]);
-    
+
     // Animate data flow from A and B to ALU
     processor.movingText = aVal;
     animateMovingText("moving-label", movePaths.aToAlu, aVal, () => {
@@ -663,13 +667,13 @@ function handleT5(instruction: string, done: () => void) {
     const aVal = getComponentValue("a");
     const bVal = getComponentValue("b");
     const result = binarySub(aVal, bVal);
-    
+
     // Add execution log for SUB with correct control signals
     const subControlSignals = ['LaSuEu'];
     processor.executionLogs.push(`T5: [${subControlSignals.join(', ')}] — SUB: A (${aVal}) - B (${bVal}) = ${result}`);
-    
+
     loopMultipleComponentGlows(["con", "a", "b", "alu"]);
-    
+
     // Animate data flow from A and B to ALU
     processor.movingText = aVal;
     animateMovingText("moving-label", movePaths.aToAlu, aVal, () => {
@@ -688,7 +692,7 @@ function handleT5(instruction: string, done: () => void) {
   } else {
     // Add execution log for other instructions
     processor.executionLogs.push(`T5: [${controlSignals.join(', ')}] — Instruction cycle complete`);
-    
+
     console.log("");
     loopMultipleComponentGlows(["con"]);
 
@@ -777,6 +781,7 @@ defineExpose({
   isRunning,
   isHalted,
   currentInstruction: computed(() => processor.currentInstruction),
+  currentStep: computed(() => processor.currentStep),
   executionLogs: computed(() => processor.executionLogs),
   activeMemoryAddress: computed(() => processor.activeMemoryAddress),
 });
