@@ -221,3 +221,35 @@ html {
       transform: translateX(50%);
     }
   }
+  
+  .active-memory {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+  
+  .active-memory::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(90deg,
+      rgba(74, 222, 128, 0.3) 0%,
+      rgba(134, 239, 172, 0.6) 25%,
+      rgba(74, 222, 128, 0.3) 50%,
+      rgba(134, 239, 172, 0.6) 75%,
+      rgba(74, 222, 128, 0.3) 100%);
+    z-index: -1;
+    animation: memory-glow 2s linear infinite;
+  }
+  
+  @keyframes memory-glow {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(50%);
+    }
+  }

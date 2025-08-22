@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { memory } from '@/lib/fakeMemory'
+import { computed } from 'vue'
 
 const props = defineProps<{
   activeMemoryAddress?: string;
 }>();
 
 const memoryEntries = Object.entries(memory)
+
+const isAddressActive = (address: string) => {
+  return props.activeMemoryAddress === address
+}
 </script>
 <template>
     <div class="w-64 max-w-xs">
@@ -17,7 +22,10 @@ const memoryEntries = Object.entries(memory)
         <div
           v-for="[address, value] in memoryEntries"
           :key="address"
-          class="flex justify-between items-center px-3 py-1.5 rounded border transition border-gray-200 bg-gray-50 hover:bg-gray-100"
+          :class="[
+            'flex justify-between items-center px-3 py-1.5 rounded border transition',
+            isAddressActive(address) ? 'active-memory border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+          ]"
         >
         
           <span class="text-gray-500 font-medium">{{ address }}</span>
