@@ -734,7 +734,15 @@ function setInstruction(bin: string) {
 
 function updateComponentValue(id: string, value: string) {
   const comp = components.find((c) => c.id === id);
-  if (comp) comp.value = value;
+  if (comp) {
+    if (id === 'out' || id === 'bd') {
+      // For output register and binary display, show binary and decimal
+      const decimalValue = parseInt(value || '0', 2);
+      comp.value = `${value} (#${decimalValue})`;
+    } else {
+      comp.value = value;
+    }
+  }
 }
 
 function testMovePath() {

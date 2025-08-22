@@ -101,6 +101,8 @@ onMounted(fetchSavedProgram);
           <span class="font-mono text-[11px] tracking-widest text-gray-500">{{ ins.binary }}</span>
         </div>
       </div>
+
+      <!-- // add control signal that lgihts here ? -->
       <h2 class="mb-3 text-sm font-semibold text-gray-800 uppercase tracking-wide mt-6 flex items-center">
         <span class="mr-2">Loaded Instructions</span>
         <span v-if="simRef?.isRunning" class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
