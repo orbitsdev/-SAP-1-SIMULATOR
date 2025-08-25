@@ -125,7 +125,11 @@ const controlVector = computed(() => {
 
 // Function to check if a signal is active based on current T-state and instruction
 const isSignalActive = (signal: string): boolean => {
-  // Always show active signals during simulation, regardless of running state
+  // Only show active signals when the processor is running
+  if (!props.isRunning) {
+    return false;
+  }
+  
   const tState = props.tState;
   const tStateKey = `T${tState}`;
   
