@@ -578,43 +578,24 @@ function handleT4(instruction: string, onComplete: () => void) {
       onComplete();
     });
   } else if (opcode === "0001") {
-    const aVal = getComponentValue("a");
-    const bVal = getComponentValue("b");
-    const result = binaryAdd(aVal, bVal);
+    // For ADD, T4 is when memory value is loaded into B register
+    const memoryValue = processor.tempMemoryValue || "00000000";
+    const memoryDisplay = processor.tempMemoryDisplay || memoryValue;
 
-    // Add execution log for ADD
-    processor.executionLogs.push(`T4: [${controlSignals.join(', ')}] — ADD: B (${bVal}) + A (${aVal}) = ${result}`);
+    // Add execution log for memory access to B register
+    const addControlSignals = ['ErLb'];
+    processor.executionLogs.push(`T4: [${addControlSignals.join(', ')}] — ADD: Memory[MAR] (${memoryDisplay}) → B`);
 
-    loopMultipleComponentGlows(["con", "b"]);
+    loopMultipleComponentGlows(["con", "prom", "b"]);
+    processor.movingText = memoryValue;
 
-    processor.movingText = bVal;
-    animateMovingText("moving-label", movePaths.bToAlu, bVal, () => {
-      stopSpecificGlows(["b"]);
+    animateMovingText("moving-label", movePaths.promToB, memoryValue, () => {
+      updateComponentValue("b", memoryValue);
+      stopSpecificGlows(["con", "prom", "b"]);
       processor.movingText = "";
-
-      animateHighlightAndGlow("alu");
-
-      setTimeout(() => {
-        loopMultipleComponentGlows(["a"]);
-        processor.movingText = aVal;
-        animateMovingText("moving-label", movePaths.aToAlu, aVal, () => {
-          stopSpecificGlows(["a"]);
-          processor.movingText = "";
-
-          setTimeout(() => {
-            processor.movingText = result;
-            animateMovingText("moving-label", movePaths.aluToA, result, () => {
-              stopSpecificGlows(["con", "alu"]);
-              updateComponentValue("a", result);
-              animateHighlightAndGlow("a");
-              processor.movingText = "";
-              console.log("=");
-              onComplete();
-            });
-          }, 400);
-        });
-      }, 300);
+      onComplete();
     });
+
   } else if (opcode === "0010") {
     // For SUB, T4 is when memory value is loaded into B register
     const memoryValue = processor.tempMemoryValue || "00000000";
