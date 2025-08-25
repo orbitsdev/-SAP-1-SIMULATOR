@@ -88,27 +88,34 @@ const controlSignalBits = {
 
 // Generate the binary control vector based on active signals
 const controlVector = computed(() => {
-  // Initialize a 13-bit vector with all zeros (matching the 13 control signals)
-  const vector = new Array(13).fill('0');
+  // Initialize a 13-bit vector with default values
+  // Some signals are active-high (0 by default, 1 when active)
+  // Others are active-low (1 by default, 0 when active)
+  const vector = ['0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '1', '1', '0'];
   
   // Set bits based on active signals
   if (props.isRunning) {
-    const tState = props.tState;
-    const tStateKey = `T${tState}`;
-    
-    // Process individual control signals
+    // CP, EP are active-high (0→1)
     if (isSignalActive('Cp')) vector[controlSignalBits['Cp']] = '1';
     if (isSignalActive('Ep') || isSignalActive('EpLm')) vector[controlSignalBits['Ep']] = '1';
-    if (isSignalActive('Lm') || isSignalActive('EpLm') || isSignalActive('LmEi')) vector[controlSignalBits['Lm']] = '1';
-    if (isSignalActive('Er') || isSignalActive('ErLi') || isSignalActive('ErLa') || isSignalActive('ErLb')) vector[controlSignalBits['Er']] = '1';
-    if (isSignalActive('LI') || isSignalActive('ErLi')) vector[controlSignalBits['LI']] = '1';
-    if (isSignalActive('EI') || isSignalActive('LmEi')) vector[controlSignalBits['EI']] = '1';
-    if (isSignalActive('La') || isSignalActive('ErLa') || isSignalActive('LaEu') || isSignalActive('LaSuEu')) vector[controlSignalBits['La']] = '1';
+    
+    // LM, ER, LI, EI, LA are active-low (1→0)
+    if (isSignalActive('Lm') || isSignalActive('EpLm') || isSignalActive('LmEi')) vector[controlSignalBits['Lm']] = '0';
+    if (isSignalActive('Er') || isSignalActive('ErLi') || isSignalActive('ErLa') || isSignalActive('ErLb')) vector[controlSignalBits['Er']] = '0';
+    if (isSignalActive('LI') || isSignalActive('ErLi')) vector[controlSignalBits['LI']] = '0';
+    if (isSignalActive('EI') || isSignalActive('LmEi')) vector[controlSignalBits['EI']] = '0';
+    if (isSignalActive('La') || isSignalActive('ErLa') || isSignalActive('LaEu') || isSignalActive('LaSuEu')) vector[controlSignalBits['La']] = '0';
+    
+    // EA, SU, EU are active-high (0→1)
     if (isSignalActive('Ea') || isSignalActive('EaLo')) vector[controlSignalBits['Ea']] = '1';
     if (isSignalActive('Su') || isSignalActive('LaSuEu')) vector[controlSignalBits['Su']] = '1';
     if (isSignalActive('Eu') || isSignalActive('LaEu') || isSignalActive('LaSuEu')) vector[controlSignalBits['Eu']] = '1';
-    if (isSignalActive('Lb') || isSignalActive('ErLb')) vector[controlSignalBits['Lb']] = '1';
-    if (isSignalActive('Lo') || isSignalActive('EaLo')) vector[controlSignalBits['Lo']] = '1';
+    
+    // LB, LO are active-low (1→0)
+    if (isSignalActive('Lb') || isSignalActive('ErLb')) vector[controlSignalBits['Lb']] = '0';
+    if (isSignalActive('Lo') || isSignalActive('EaLo')) vector[controlSignalBits['Lo']] = '0';
+    
+    // HLT is active-high (0→1)
     if (isSignalActive('HLT')) vector[controlSignalBits['HLT']] = '1';
   }
   
@@ -156,20 +163,30 @@ const isSignalActive = (signal: string): boolean => {
     <div class="mb-2">
       <h3 class="text-xs font-semibold mb-1">Control Signals</h3>
       <div class="grid grid-cols-9 gap-1 mb-1">
+        <!-- Active-high signals (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Cp') }">CP</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('Ep') || isSignalActive('EpLm') }">EP</div>
+        
+        <!-- Active-low signals (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Lm') || isSignalActive('EpLm') || isSignalActive('LmEi') }">LM</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('Er') || isSignalActive('ErLi') || isSignalActive('ErLa') || isSignalActive('ErLb') }">ER</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('LI') || isSignalActive('ErLi') }">LI</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('EI') || isSignalActive('LmEi') }">EI</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('La') || isSignalActive('ErLa') || isSignalActive('LaEu') || isSignalActive('LaSuEu') }">LA</div>
+        
+        <!-- Active-high signals (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Ea') || isSignalActive('EaLo') }">EA</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('Su') || isSignalActive('LaSuEu') }">SU</div>
       </div>
       <div class="grid grid-cols-4 gap-1">
+        <!-- Active-high signal (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Eu') || isSignalActive('LaEu') || isSignalActive('LaSuEu') }">EU</div>
+        
+        <!-- Active-low signals (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Lb') || isSignalActive('ErLb') }">LB</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('Lo') || isSignalActive('EaLo') }">LO</div>
+        
+        <!-- Active-high signal (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('HLT') }">HLT</div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import Arrow from "./Arrow.vue";
 import MovingLabel from "./MovingLabel.vue";
 import { arrows } from "@/lib/arrows";
 import { components } from "@/lib/components";
+import { instructionSet } from "@/lib/instructions";
 import axios from 'axios'
 import {
   animateHighlightAndGlow,
@@ -87,6 +88,12 @@ function isValidInstruction(bin: string): boolean {
   if (!/^[01]{8}$/.test(bin)) return false;
   const opcode = bin.slice(0, 4);
   return validOpcodes.includes(opcode);
+}
+
+// Function to get instruction name from opcode
+function getInstructionName(opcode: string): string {
+  const instruction = instructionSet.find((ins) => ins.binary === opcode);
+  return instruction ? instruction.name : 'UNKNOWN';
 }
 
 function runManualStep() {
@@ -351,8 +358,9 @@ function handleT0(instruction: string, onComplete: () => void) {
   const controlSignals = getControlWords(instruction, 0);
   console.log(`T0 Control Signals: ${controlSignals.join(', ')}`);
 
-  // Add execution log
-  processor.executionLogs.push(`T0: [${controlSignals.join(', ')}] — PC (${pcValue}) → MAR`);
+  // Add execution log with instruction name
+  const instructionName = getInstructionName(instruction.slice(0, 4));
+  processor.executionLogs.push(`T0: [${controlSignals.join(', ')}] — ${instructionName}: PC (${pcValue}) → MAR`);
 
   updateComponentValue("pc", pcValue);
   loopMultipleComponentGlows(["con", "pc", "mar"]);
@@ -383,8 +391,9 @@ function handleT1(instruction: string, onComplete: () => void) {
   const isHltInstruction = instructionAtMar.slice(0, 4) === "1111";
   const instructionType = isHltInstruction ? "HLT" : instructionAtMar;
 
-  // Add execution log for T1
-  processor.executionLogs.push(`T1: [${controlSignals.join(', ')}] — Memory[MAR] (${instructionType}) → IR`);
+  // Add execution log for T1 with instruction name
+  const instructionName = getInstructionName(instructionAtMar.slice(0, 4));
+  processor.executionLogs.push(`T1: [${controlSignals.join(', ')}] — ${instructionName}: Memory[MAR] (${instructionType}) → IR`);
 
   updateComponentValue("prom", instructionAtMar);
   loopMultipleComponentGlows(["con", "prom", "ir"]);
@@ -420,12 +429,13 @@ function handleT2(instruction: string, onComplete: () => void) {
   const isHltInstruction = processor.opcode === "1111";
   const instructionType = isHltInstruction ? "HLT" : instruction;
 
-  // Add execution log for PC increment
+  // Add execution log for PC increment with instruction name
   const pcIncrementSignals = ['Cp'];
+  const instructionName = getInstructionName(processor.opcode);
   if (isHltInstruction) {
-    processor.executionLogs.push(`T2: [${pcIncrementSignals.join(', ')}] — HLT: PC incremented to ${newPcValue}`);
+    processor.executionLogs.push(`T2: [${pcIncrementSignals.join(', ')}] — ${instructionName}: PC incremented to ${newPcValue}`);
   } else {
-    processor.executionLogs.push(`T2: [${pcIncrementSignals.join(', ')}] — PC incremented to ${newPcValue}`);
+    processor.executionLogs.push(`T2: [${pcIncrementSignals.join(', ')}] — ${instructionName}: PC incremented to ${newPcValue}`);
   }
 
   // No operand movement in T2 according to the diagram, just PC increment
@@ -453,7 +463,8 @@ function handleT3(instruction: string, onComplete: () => void) {
 
     // Add execution log for HLT with proper control signal
     const hltControlSignals = ['HLT'];
-    processor.executionLogs.push(`T3: [${hltControlSignals.join(', ')}] — HLT: Processor halted`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T3: [${hltControlSignals.join(', ')}] — ${instructionName}: Processor halted`);
 
     // Highlight control unit to show HLT signal
     loopMultipleComponentGlows(["con"]);
@@ -477,7 +488,8 @@ function handleT3(instruction: string, onComplete: () => void) {
 
     // Add execution log for OUT with correct control signals from diagram
     const outControlSignals = ['EaLo'];
-    processor.executionLogs.push(`T3: [${outControlSignals.join(', ')}] — OUT: A (${aValue}) → Output`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T3: [${outControlSignals.join(', ')}] — ${instructionName}: A (${aValue}) → Output`);
 
     animateMovingText("moving-label", movePaths.aToOut, aValue, () => {
       updateComponentValue("out", aValue);
@@ -499,7 +511,8 @@ function handleT3(instruction: string, onComplete: () => void) {
 
   // Add execution log for MAR setting with correct control signals from diagram
   const marControlSignals = ['LmEi'];
-  processor.executionLogs.push(`T3: [${marControlSignals.join(', ')}] — MAR set to ${operand}`);
+  const instructionName = getInstructionName(opcode);
+  processor.executionLogs.push(`T3: [${marControlSignals.join(', ')}] — ${instructionName}: MAR set to ${operand}`);
 
   // Get memory value
   const memoryExists = operand in memory;
@@ -531,7 +544,8 @@ function handleT3(instruction: string, onComplete: () => void) {
     const operation = opcode === "0001" ? "ADD" : "SUB";
 
     // Add execution log for MAR setting with correct control signals
-    processor.executionLogs.push(`T3: [LmEi] — ${operation}: MAR set to ${operand}`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T3: [LmEi] — ${instructionName}: MAR set to ${operand}`);
 
     // Store memory value for T4 to use
     processor.tempMemoryValue = fakeMemoryValue;
@@ -546,7 +560,8 @@ function handleT3(instruction: string, onComplete: () => void) {
   } else {
     // For any other instructions
     console.log("T3 skipped (no data fetch required)");
-    processor.executionLogs.push(`T3: No operation`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T3: [None] — ${instructionName}: No operation`);
     stopSpecificGlows(["con"]);
     onComplete();
   }
@@ -566,7 +581,8 @@ function handleT4(instruction: string, onComplete: () => void) {
 
     // Add execution log for memory access
     const ldaControlSignals = ['ErLa'];
-    processor.executionLogs.push(`T4: [${ldaControlSignals.join(', ')}] — LDA: Memory[MAR] (${memoryDisplay}) → A`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T4: [${ldaControlSignals.join(', ')}] — ${instructionName}: Memory[MAR] (${memoryDisplay}) → A`);
 
     loopMultipleComponentGlows(["con", "prom", "a"]);
     processor.movingText = memoryValue;
@@ -584,7 +600,8 @@ function handleT4(instruction: string, onComplete: () => void) {
 
     // Add execution log for memory access to B register
     const addControlSignals = ['ErLb'];
-    processor.executionLogs.push(`T4: [${addControlSignals.join(', ')}] — ADD: Memory[MAR] (${memoryDisplay}) → B`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T4: [${addControlSignals.join(', ')}] — ${instructionName}: Memory[MAR] (${memoryDisplay}) → B`);
 
     loopMultipleComponentGlows(["con", "prom", "b"]);
     processor.movingText = memoryValue;
@@ -603,7 +620,8 @@ function handleT4(instruction: string, onComplete: () => void) {
 
     // Add execution log for memory access to B register
     const subControlSignals = ['ErLb'];
-    processor.executionLogs.push(`T4: [${subControlSignals.join(', ')}] — SUB: Memory[MAR] (${memoryDisplay}) → B`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T4: [${subControlSignals.join(', ')}] — ${instructionName}: Memory[MAR] (${memoryDisplay}) → B`);
 
     loopMultipleComponentGlows(["con", "prom", "b"]);
     processor.movingText = memoryValue;
@@ -616,7 +634,8 @@ function handleT4(instruction: string, onComplete: () => void) {
     });
   } else {
     // Add execution log for no operation
-    processor.executionLogs.push(`T4: No operation`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T4: [None] — ${instructionName}: No operation`);
     // Stop con glow for no-op case
     stopSpecificGlows(["con"]);
     onComplete();
@@ -646,7 +665,8 @@ function handleT5(instruction: string, done: () => void) {
 
     // Add execution log for ADD with correct control signals
     const addControlSignals = ['LaEu'];
-    processor.executionLogs.push(`T5: [${addControlSignals.join(', ')}] — ADD: A (${aVal}) + B (${bVal}) = ${result}`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T5: [${addControlSignals.join(', ')}] — ${instructionName}: A (${aVal}) + B (${bVal}) = ${result}`);
 
     loopMultipleComponentGlows(["con", "a", "b", "alu"]);
 
@@ -673,7 +693,8 @@ function handleT5(instruction: string, done: () => void) {
 
     // Add execution log for SUB with correct control signals
     const subControlSignals = ['LaSuEu'];
-    processor.executionLogs.push(`T5: [${subControlSignals.join(', ')}] — SUB: A (${aVal}) - B (${bVal}) = ${result}`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T5: [${subControlSignals.join(', ')}] — ${instructionName}: A (${aVal}) - B (${bVal}) = ${result}`);
 
     loopMultipleComponentGlows(["con", "a", "b", "alu"]);
 
@@ -694,7 +715,8 @@ function handleT5(instruction: string, done: () => void) {
     });
   } else {
     // Add execution log for other instructions
-    processor.executionLogs.push(`T5: [${controlSignals.join(', ')}] — Instruction cycle complete`);
+    const instructionName = getInstructionName(opcode);
+    processor.executionLogs.push(`T5: [${controlSignals.join(', ')}] — ${instructionName}: Instruction cycle complete`);
 
     console.log("");
     loopMultipleComponentGlows(["con"]);
