@@ -553,13 +553,18 @@ function handleT3(instruction: string, onComplete: () => void) {
     processor.tempMemoryValue = fakeMemoryValue;
     processor.tempMemoryDisplay = memoryValueDisplay;
 
-    // Clear activeMemoryAddress after a short delay
-    setTimeout(() => {
-      processor.activeMemoryAddress = "";
-      stopSpecificGlows(["con", "ir", "mar"]); // Stop glowing after delay
-    }, 500);
-
-    onComplete();
+    // Add a visual animation for ADD/SUB similar to LDA
+    processor.movingText = operand;
+    animateMovingText("moving-label", movePaths.irToMar, operand, () => {
+      processor.movingText = "";
+      
+      // Clear activeMemoryAddress after animation completes
+      setTimeout(() => {
+        processor.activeMemoryAddress = "";
+        stopSpecificGlows(["con", "ir", "mar"]);
+        onComplete();
+      }, 300);
+    });
   } else {
     // For any other instructions
     console.log("T3 skipped (no data fetch required)");

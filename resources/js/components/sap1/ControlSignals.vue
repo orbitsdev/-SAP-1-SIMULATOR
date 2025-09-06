@@ -75,8 +75,8 @@ const controlSignalBits = {
   'Ep': 1,   // Program Counter output enable
   'Lm': 2,   // MAR load
   'Er': 3,   // RAM output enable
-  'LI': 4,   // Instruction Register load
-  'EI': 5,   // Instruction Register output enable
+  'Li': 4,   // Instruction Register load
+  'Ei': 5,   // Instruction Register output enable
   'La': 6,   // A Register load
   'Ea': 7,   // A Register output enable
   'Su': 8,   // ALU subtract mode
@@ -91,34 +91,34 @@ const controlVector = computed(() => {
   // Initialize a 13-bit vector with default values
   // Some signals are active-high (0 by default, 1 when active)
   // Others are active-low (1 by default, 0 when active)
-  const vector = ['0', '0', '1', '1', '1', '1', '1', '0', '0', '0', '1', '1', '0'];
-  
+  const vector = ['0','0','1','1','1','1','0','0','1','1','0','0','1'];
+
   // Set bits based on active signals
   if (props.isRunning) {
     // CP, EP are active-high (0→1)
     if (isSignalActive('Cp')) vector[controlSignalBits['Cp']] = '1';
     if (isSignalActive('Ep') || isSignalActive('EpLm')) vector[controlSignalBits['Ep']] = '1';
-    
+
     // LM, ER, LI, EI, LA are active-low (1→0)
     if (isSignalActive('Lm') || isSignalActive('EpLm') || isSignalActive('LmEi')) vector[controlSignalBits['Lm']] = '0';
     if (isSignalActive('Er') || isSignalActive('ErLi') || isSignalActive('ErLa') || isSignalActive('ErLb')) vector[controlSignalBits['Er']] = '0';
     if (isSignalActive('LI') || isSignalActive('ErLi')) vector[controlSignalBits['LI']] = '0';
     if (isSignalActive('EI') || isSignalActive('LmEi')) vector[controlSignalBits['EI']] = '0';
     if (isSignalActive('La') || isSignalActive('ErLa') || isSignalActive('LaEu') || isSignalActive('LaSuEu')) vector[controlSignalBits['La']] = '0';
-    
+
     // EA, SU, EU are active-high (0→1)
     if (isSignalActive('Ea') || isSignalActive('EaLo')) vector[controlSignalBits['Ea']] = '1';
     if (isSignalActive('Su') || isSignalActive('LaSuEu')) vector[controlSignalBits['Su']] = '1';
     if (isSignalActive('Eu') || isSignalActive('LaEu') || isSignalActive('LaSuEu')) vector[controlSignalBits['Eu']] = '1';
-    
+
     // LB, LO are active-low (1→0)
     if (isSignalActive('Lb') || isSignalActive('ErLb')) vector[controlSignalBits['Lb']] = '0';
     if (isSignalActive('Lo') || isSignalActive('EaLo')) vector[controlSignalBits['Lo']] = '0';
-    
+
     // HLT is active-high (0→1)
     if (isSignalActive('HLT')) vector[controlSignalBits['HLT']] = '1';
   }
-  
+
   // Format the vector with spaces for readability (4 bits per group)
   return `${vector.slice(0, 4).join('')} ${vector.slice(4, 8).join('')} ${vector.slice(8, 13).join('')}`.trim();
 });
@@ -129,10 +129,10 @@ const isSignalActive = (signal: string): boolean => {
   if (!props.isRunning) {
     return false;
   }
-  
+
   const tState = props.tState;
   const tStateKey = `T${tState}`;
-  
+
   // Check fetch cycle signals (T0-T2)
   if (tState <= 2) {
     const fetchSignals = fetchCycleSignals.find((s: {state: string; signals: string[]}) => s.state === tStateKey);
@@ -145,7 +145,7 @@ const isSignalActive = (signal: string): boolean => {
   // Check execute cycle signals (T3-T5)
   const instruction = currentInstruction.value;
   // Make sure instruction is one of the valid keys
-  if (instruction === 'LDA' || instruction === 'ADD' || instruction === 'SUB' || 
+  if (instruction === 'LDA' || instruction === 'ADD' || instruction === 'SUB' ||
       instruction === 'OUT' || instruction === 'HLT') {
     // Use type assertion to tell TypeScript this is a valid key
     const executeSignals = executeCycleSignals[instruction as keyof typeof executeCycleSignals];
@@ -170,14 +170,14 @@ const isSignalActive = (signal: string): boolean => {
         <!-- Active-high signals (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Cp') }">CP</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('Ep') || isSignalActive('EpLm') }">EP</div>
-        
+
         <!-- Active-low signals (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Lm') || isSignalActive('EpLm') || isSignalActive('LmEi') }">LM</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('Er') || isSignalActive('ErLi') || isSignalActive('ErLa') || isSignalActive('ErLb') }">ER</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('LI') || isSignalActive('ErLi') }">LI</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('EI') || isSignalActive('LmEi') }">EI</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('La') || isSignalActive('ErLa') || isSignalActive('LaEu') || isSignalActive('LaSuEu') }">LA</div>
-        
+
         <!-- Active-high signals (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Ea') || isSignalActive('EaLo') }">EA</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('Su') || isSignalActive('LaSuEu') }">SU</div>
@@ -185,16 +185,16 @@ const isSignalActive = (signal: string): boolean => {
       <div class="grid grid-cols-4 gap-1">
         <!-- Active-high signal (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Eu') || isSignalActive('LaEu') || isSignalActive('LaSuEu') }">EU</div>
-        
+
         <!-- Active-low signals (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Lb') || isSignalActive('ErLb') }">LB</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('Lo') || isSignalActive('EaLo') }">LO</div>
-        
+
         <!-- Active-high signal (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('HLT') }">HLT</div>
       </div>
     </div>
-    
+
     <!-- Control Vector Display -->
     <div class="mt-3">
       <h3 class="text-xs font-semibold mb-1">Control Vector</h3>
