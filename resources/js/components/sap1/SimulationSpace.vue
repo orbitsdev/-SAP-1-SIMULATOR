@@ -130,7 +130,7 @@ function runManualStep() {
     processor.currentStep++;
     runManualStep();
   };
-  
+
   // Function to complete the manual step and reset isRunning
   const completeManualStep = () => {
     // Reset isRunning to false after the step is complete
@@ -503,7 +503,7 @@ function handleT3(instruction: string, onComplete: () => void) {
 
   // For LDA, ADD, SUB instructions
   // According to the diagram, T3 sets MAR from operand and accesses memory
-  loopMultipleComponentGlows(["con", "mar"]);
+  loopMultipleComponentGlows(["con", "ir", "mar"]); // Added IR to the glow components
 
   // Set MAR and highlight memory address
   updateComponentValue("mar", operand);
@@ -527,26 +527,28 @@ function handleT3(instruction: string, onComplete: () => void) {
     console.log("Operand:", operand);
     console.log("Resolved Memory Value:", fakeMemoryValue);
 
-
     // Store memory value for T4 to use
     processor.tempMemoryValue = fakeMemoryValue;
     processor.tempMemoryDisplay = memoryValueDisplay;
 
-    // Clear activeMemoryAddress after a short delay
-    setTimeout(() => {
-      processor.activeMemoryAddress = "";
-    }, 500);
+    // Add a visual delay to match other instructions
+    // Show data movement from IR to MAR
+    processor.movingText = operand;
+    animateMovingText("moving-label", movePaths.irToMar, operand, () => {
+      processor.movingText = "";
 
-    onComplete();
+      // Clear activeMemoryAddress after animation completes
+      setTimeout(() => {
+        processor.activeMemoryAddress = "";
+        stopSpecificGlows(["con", "ir", "mar"]);
+        onComplete();
+      }, 300);
+    });
 
   } else if (opcode === "0001" || opcode === "0010") { // ADD or SUB
     // For ADD/SUB, T3 only sets MAR with operand (no data movement to B yet)
     const operation = opcode === "0001" ? "ADD" : "SUB";
 
-    // Add execution log for MAR setting with correct control signals
-    const instructionName = getInstructionName(opcode);
-    processor.executionLogs.push(`T3: [LmEi] — ${instructionName}: MAR set to ${operand}`);
-
     // Store memory value for T4 to use
     processor.tempMemoryValue = fakeMemoryValue;
     processor.tempMemoryDisplay = memoryValueDisplay;
@@ -554,6 +556,7 @@ function handleT3(instruction: string, onComplete: () => void) {
     // Clear activeMemoryAddress after a short delay
     setTimeout(() => {
       processor.activeMemoryAddress = "";
+      stopSpecificGlows(["con", "ir", "mar"]); // Stop glowing after delay
     }, 500);
 
     onComplete();
@@ -562,7 +565,7 @@ function handleT3(instruction: string, onComplete: () => void) {
     console.log("T3 skipped (no data fetch required)");
     const instructionName = getInstructionName(opcode);
     processor.executionLogs.push(`T3: [None] — ${instructionName}: No operation`);
-    stopSpecificGlows(["con"]);
+    stopSpecificGlows(["con", "ir", "mar"]);
     onComplete();
   }
 }
