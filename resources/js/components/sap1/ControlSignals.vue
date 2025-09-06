@@ -102,8 +102,8 @@ const controlVector = computed(() => {
     // LM, ER, LI, EI, LA are active-low (1→0)
     if (isSignalActive('Lm') || isSignalActive('EpLm') || isSignalActive('LmEi')) vector[controlSignalBits['Lm']] = '0';
     if (isSignalActive('Er') || isSignalActive('ErLi') || isSignalActive('ErLa') || isSignalActive('ErLb')) vector[controlSignalBits['Er']] = '0';
-    if (isSignalActive('LI') || isSignalActive('ErLi')) vector[controlSignalBits['LI']] = '0';
-    if (isSignalActive('EI') || isSignalActive('LmEi')) vector[controlSignalBits['EI']] = '0';
+    if (isSignalActive('Li') || isSignalActive('ErLi')) vector[controlSignalBits['Li']] = '0';
+    if (isSignalActive('Ei') || isSignalActive('LmEi')) vector[controlSignalBits['Ei']] = '0';
     if (isSignalActive('La') || isSignalActive('ErLa') || isSignalActive('LaEu') || isSignalActive('LaSuEu')) vector[controlSignalBits['La']] = '0';
 
     // EA, SU, EU are active-high (0→1)
