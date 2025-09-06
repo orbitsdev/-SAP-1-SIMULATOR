@@ -1,23 +1,25 @@
 // fakeMemory.ts
 
 // 16 memory addresses: 0000 to 1111 (binary 0 to 15 decimal)
-// Each stores an 8-bit binary value (00000001 to 00010000)
+// Each memory location contains an 8-bit value
+// First 4 bits = opcode, Last 4 bits = operand
+// Opcodes: 0000 (LDA), 0001 (ADD), 0010 (SUB), 1110 (OUT), 1111 (HLT)
 
 export const memory: Record<string, string> = {
-  '0000': '00000001', // M[0] = 1
-  '0001': '00000010', // M[1] = 2
-  '0010': '00000011', // M[2] = 3
-  '0011': '00000100', // M[3] = 4
-  '0100': '00000101', // M[4] = 5
-  '0101': '00000110', // M[5] = 6
-  '0110': '00000111', // M[6] = 7
-  '0111': '00001000', // M[7] = 8
-  '1000': '00001001', // M[8] = 9
-  '1001': '00001010', // M[9] = 10
-  '1010': '00001011', // M[10] = 11
-  '1011': '00001100', // M[11] = 12
-  '1100': '00001101', // M[12] = 13
-  '1101': '00001110', // M[13] = 14
-  '1110': '00001111', // M[14] = 15
-  '1111': '00010000'  // M[15] = 16
+  '0000': '00001000', // LDA from address 8
+  '0001': '00011001', // ADD from address 9
+  '0010': '00101010', // SUB from address 10
+  '0011': '11100000', // OUT (no operand needed)
+  '0100': '11110000', // HLT (no operand needed)
+  '0101': '00001011', // LDA from address 11
+  '0110': '00011100', // ADD from address 12
+  '0111': '00101101', // SUB from address 13
+  '1000': '00001010', // Value 10 (data, not instruction)
+  '1001': '00000101', // Value 5 (data, not instruction)
+  '1010': '00000011', // Value 3 (data, not instruction)
+  '1011': '00001111', // Value 15 (data, not instruction)
+  '1100': '00000111', // Value 7 (data, not instruction)
+  '1101': '00000010', // Value 2 (data, not instruction)
+  '1110': '00001001', // Value 9 (data, not instruction)
+  '1111': '00000000'  // Value 0 (data, not instruction)
 };
