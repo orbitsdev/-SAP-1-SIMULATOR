@@ -103,13 +103,13 @@ onMounted(fetchSavedProgram);
         </div>
       </div>
 
-      <!-- Control Signals Panel -->      
+      <!-- Control Signals Panel -->
       <div class="mt-6 border border-gray-200 rounded-lg p-2 bg-gray-50">
         <h2 class="mb-2 text-xs font-semibold text-gray-800 uppercase tracking-wide">Control Signals</h2>
-        <ControlSignals 
-          :opcode="uploadedInstructions[simRef?.currentInstruction || 0]?.slice(0, 4) || '0000'" 
-          :t-state="simRef?.currentStep || 0" 
-          :is-running="!!simRef?.isRunning" 
+        <ControlSignals
+          :opcode="uploadedInstructions[simRef?.currentInstruction || 0]?.slice(0, 4) || '0000'"
+          :t-state="simRef?.currentStep || 0"
+          :is-running="!!simRef?.isRunning"
           class="text-[10px] scale-90 origin-top-left"
         />
       </div>
