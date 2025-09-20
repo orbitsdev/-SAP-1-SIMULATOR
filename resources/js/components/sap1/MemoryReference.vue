@@ -15,7 +15,7 @@ const isAddressActive = (address: string) => {
 }
 
 const isProgramCounter = (address: string) => {
-  return props.currentInstruction !== undefined && 
+  return props.currentInstruction !== undefined &&
          parseInt(address, 2) === props.currentInstruction
 }
 
@@ -42,7 +42,7 @@ const getInstructionName = (value: string): string => {
 const getMemoryDescription = (address: string, value: string): string => {
   const addressDecimal = parseInt(address, 2);
   const valueDecimal = parseInt(value, 2);
-  
+
   if (isInstruction(value)) {
     const name = getInstructionName(value);
     const operand = parseInt(value.slice(4, 8), 2);
@@ -61,7 +61,7 @@ const getMemoryDescription = (address: string, value: string): string => {
       <h2 class="mb-3 text-base font-semibold text-gray-800 uppercase tracking-widest">
         Memory
       </h2>
-      
+
       <div class="mb-2 text-xs text-gray-600">
         <div class="flex items-center mb-1">
           <div class="w-3 h-3 bg-blue-500 rounded-full mr-1"></div>
@@ -72,7 +72,7 @@ const getMemoryDescription = (address: string, value: string): string => {
           <span>Active Memory Address</span>
         </div>
       </div>
-      
+
       <!-- Column headers -->
       <div class="flex justify-between items-center px-3 py-1.5 mb-1 text-xs font-semibold">
         <div class="flex items-center" style="width: 90px;">
@@ -91,7 +91,7 @@ const getMemoryDescription = (address: string, value: string): string => {
             'flex flex-col px-3 py-1.5 rounded border transition',
             isProgramCounter(address) && isAddressActive(address) ? 'border-purple-500 bg-purple-50' :
             isProgramCounter(address) ? 'border-blue-500 bg-blue-50' :
-            isAddressActive(address) ? 'border-green-500 bg-green-50' : 
+            isAddressActive(address) ? 'border-green-500 bg-green-50' :
             'border-gray-200 bg-gray-50 hover:bg-gray-100'
           ]"
         >
@@ -108,9 +108,7 @@ const getMemoryDescription = (address: string, value: string): string => {
               <span class="text-xs text-gray-400 ml-1">#{{ binaryToDecimal(value) }}</span>
             </div>
           </div>
-          <div class="mt-1 text-xs text-gray-600">
-            {{ getMemoryDescription(address, value) }}
-          </div>
+         
         </div>
       </div>
     </div>
