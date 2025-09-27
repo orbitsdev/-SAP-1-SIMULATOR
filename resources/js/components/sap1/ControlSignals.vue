@@ -91,7 +91,7 @@ const controlVector = computed(() => {
   // Initialize a 13-bit vector with default values
   // Some signals are active-high (0 by default, 1 when active)
   // Others are active-low (1 by default, 0 when active)
-  const vector = ['0','0','1','1','1','1','1','0','0','0','0','0','1'];
+  const vector = ['0','0','1','1','1','1','1','0','0','0','1','1','0'];
 
   // Set bits based on active signals
   if (props.isRunning) {
@@ -104,6 +104,7 @@ const controlVector = computed(() => {
     if (isSignalActive('Er') || isSignalActive('ErLi') || isSignalActive('ErLa') || isSignalActive('ErLb')) vector[controlSignalBits['Er']] = '0';
     if (isSignalActive('Li') || isSignalActive('ErLi')) vector[controlSignalBits['Li']] = '0';
     if (isSignalActive('Ei') || isSignalActive('LmEi')) vector[controlSignalBits['Ei']] = '0';
+    // Only set La to active (0) if it's explicitly activated
     if (isSignalActive('La') || isSignalActive('ErLa') || isSignalActive('LaEu') || isSignalActive('LaSuEu')) vector[controlSignalBits['La']] = '0';
 
     // EA, SU, EU are active-high (0→1)
@@ -115,7 +116,7 @@ const controlVector = computed(() => {
     if (isSignalActive('Lb') || isSignalActive('ErLb')) vector[controlSignalBits['Lb']] = '0';
     if (isSignalActive('Lo') || isSignalActive('EaLo')) vector[controlSignalBits['Lo']] = '0';
 
-    // HLT is active-high (0→1)
+    // HLT is active-low (1→0) in this implementation
     if (isSignalActive('HLT')) vector[controlSignalBits['HLT']] = '1';
   }
 
