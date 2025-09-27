@@ -50,7 +50,7 @@ const executeCycleSignals = {
     { state: 'T5', signals: ['No Op'], description: '' },
   ],
   'HLT': [
-    { state: 'T3', signals: ['HLT signal'], description: 'Halt processor' },
+    { state: 'T3', signals: ['HLT'], description: 'Halt processor' },
     { state: 'T4', signals: [''], description: '' },
     { state: 'T5', signals: [''], description: '' },
   ],
@@ -116,7 +116,7 @@ const controlVector = computed(() => {
     if (isSignalActive('Lb') || isSignalActive('ErLb')) vector[controlSignalBits['Lb']] = '0';
     if (isSignalActive('Lo') || isSignalActive('EaLo')) vector[controlSignalBits['Lo']] = '0';
 
-    // HLT is active-low (1→0) in this implementation
+    // HLT is active-high (0→1) in this implementation
     if (isSignalActive('HLT')) vector[controlSignalBits['HLT']] = '1';
   }
 
@@ -175,8 +175,8 @@ const isSignalActive = (signal: string): boolean => {
         <!-- Active-low signals (highlighted when active) -->
         <div class="signal-bit" :class="{ 'active': isSignalActive('Lm') || isSignalActive('EpLm') || isSignalActive('LmEi') }">LM</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('Er') || isSignalActive('ErLi') || isSignalActive('ErLa') || isSignalActive('ErLb') }">ER</div>
-        <div class="signal-bit" :class="{ 'active': isSignalActive('LI') || isSignalActive('ErLi') }">LI</div>
-        <div class="signal-bit" :class="{ 'active': isSignalActive('EI') || isSignalActive('LmEi') }">EI</div>
+        <div class="signal-bit" :class="{ 'active': isSignalActive('Li') || isSignalActive('ErLi') }">LI</div>
+        <div class="signal-bit" :class="{ 'active': isSignalActive('Ei') || isSignalActive('LmEi') }">EI</div>
         <div class="signal-bit" :class="{ 'active': isSignalActive('La') || isSignalActive('ErLa') || isSignalActive('LaEu') || isSignalActive('LaSuEu') }">LA</div>
 
         <!-- Active-high signals (highlighted when active) -->
