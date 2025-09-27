@@ -91,7 +91,7 @@ const controlVector = computed(() => {
   // Initialize a 13-bit vector with default values
   // Some signals are active-high (0 by default, 1 when active)
   // Others are active-low (1 by default, 0 when active)
-  const vector = ['0','0','1','1','1','1','0','0','1','1','0','0','1'];
+  const vector = ['0','0','1','1','1','1','1','0','0','0','0','0','1'];
 
   // Set bits based on active signals
   if (props.isRunning) {
