@@ -90,10 +90,38 @@ function isValidInstruction(bin: string): boolean {
   return validOpcodes.includes(opcode);
 }
 
+// Function to convert binary to signed decimal (two's complement)
+function binaryToSignedDecimal(binary: string): number {
+  // Make sure we have a valid binary string
+  if (!binary || !/^[01]+$/.test(binary)) {
+    return 0;
+  }
+
+  // Convert to unsigned integer first
+  const unsignedValue = parseInt(binary, 2);
+
+  // Use bitwise operations to handle two's complement
+  // Check if MSB is 1 (negative number)
+  if (unsignedValue & (1 << (binary.length - 1))) {
+    // Apply two's complement formula using bitwise operations
+    return unsignedValue - (1 << binary.length);
+  }
+
+  // Otherwise it's positive
+  return unsignedValue;
+}
+
 // Function to get instruction name from opcode
 function getInstructionName(opcode: string): string {
   const instruction = instructionSet.find((ins) => ins.binary === opcode);
   return instruction ? instruction.name : 'UNKNOWN';
+}
+
+// Helper function to format binary values with both unsigned and signed interpretations
+function formatBinaryValue(binary: string): string {
+  const unsigned = parseInt(binary, 2);
+  const signed = binaryToSignedDecimal(binary);
+  return `${binary} (Unsigned: ${unsigned}, Signed: ${signed})`;
 }
 
 function runManualStep() {
@@ -464,16 +492,26 @@ function handleT3(instruction: string, onComplete: () => void) {
     // Add execution log for HLT with proper control signal and program summary
     const hltControlSignals = ['HLT'];
     const instructionName = getInstructionName(opcode);
-    
+
     // Get the final value from output register if available
     const outputValue = getComponentValue("out") || "00000000";
     const outputDecimal = parseInt(outputValue, 2);
-    
+
     // Get the final value from A register
     const aValue = getComponentValue("a") || "00000000";
-    const aDecimal = parseInt(aValue, 2);
-    
-    processor.executionLogs.push(`T3: [${hltControlSignals.join(', ')}] — ${instructionName}: Processor halted — PROGRAM COMPLETE: Final output value = ${outputDecimal}, Final A register value = ${aDecimal}`);
+    const aUnsigned = parseInt(aValue, 2);
+    const aSigned = binaryToSignedDecimal(aValue);
+    const outputUnsigned = outputDecimal;
+    const outputSigned = binaryToSignedDecimal(outputValue);
+
+    // Format the binary values with both unsigned and signed interpretations
+    const formattedOutputValue = formatBinaryValue(outputValue);
+    const formattedAValue = formatBinaryValue(aValue);
+
+    processor.executionLogs.push(`T3: [${hltControlSignals.join(', ')}] — ${instructionName}: Processor halted —
+      PROGRAM COMPLETE:
+      Final output value = ${formattedOutputValue}
+      Final A register value = ${formattedAValue}`);
 
     // Highlight control unit to show HLT signal
     loopMultipleComponentGlows(["con"]);
@@ -498,8 +536,8 @@ function handleT3(instruction: string, onComplete: () => void) {
     // Add execution log for OUT with correct control signals from diagram
     const outControlSignals = ['EaLo'];
     const instructionName = getInstructionName(opcode);
-    const aValueDecimal = parseInt(aValue, 2);
-    processor.executionLogs.push(`T3: [${outControlSignals.join(', ')}] — ${instructionName}: A (${aValue} = ${aValueDecimal} decimal) → Output — FINAL RESULT: ${aValueDecimal}`);
+    const formattedAValue = formatBinaryValue(aValue);
+    processor.executionLogs.push(`T3: [${outControlSignals.join(', ')}] — ${instructionName}: A (${aValue}) → Output — FINAL RESULT: ${formattedAValue}`);
 
     animateMovingText("moving-label", movePaths.aToOut, aValue, () => {
       updateComponentValue("out", aValue);
@@ -600,8 +638,8 @@ function handleT4(instruction: string, onComplete: () => void) {
     // Add execution log for memory access with decimal conversion
     const ldaControlSignals = ['ErLa'];
     const instructionName = getInstructionName(opcode);
-    const memoryValueDecimal = parseInt(memoryValue, 2);
-    processor.executionLogs.push(`T4: [${ldaControlSignals.join(', ')}] — ${instructionName}: Memory[MAR] (${memoryDisplay} = ${memoryValueDecimal} decimal) → A — Loading value ${memoryValueDecimal} into accumulator`);
+    const formattedMemoryValue = formatBinaryValue(memoryValue);
+    processor.executionLogs.push(`T4: [${ldaControlSignals.join(', ')}] — ${instructionName}: Memory[MAR] (${memoryDisplay}) → A — Loading value ${formattedMemoryValue} into accumulator`);
 
     loopMultipleComponentGlows(["con", "prom", "a"]);
     processor.movingText = memoryValue;
@@ -620,8 +658,8 @@ function handleT4(instruction: string, onComplete: () => void) {
     // Add execution log for memory access to B register with decimal conversion
     const addControlSignals = ['ErLb'];
     const instructionName = getInstructionName(opcode);
-    const memoryValueDecimal = parseInt(memoryValue, 2);
-    processor.executionLogs.push(`T4: [${addControlSignals.join(', ')}] — ${instructionName}: Memory[MAR] (${memoryDisplay} = ${memoryValueDecimal} decimal) → B — Loading value ${memoryValueDecimal} into B register for addition`);
+    const formattedMemoryValue = formatBinaryValue(memoryValue);
+    processor.executionLogs.push(`T4: [${addControlSignals.join(', ')}] — ${instructionName}: Memory[MAR] (${memoryDisplay}) → B — Loading value ${formattedMemoryValue} into B register for addition`);
 
     loopMultipleComponentGlows(["con", "prom", "b"]);
     processor.movingText = memoryValue;
@@ -641,8 +679,8 @@ function handleT4(instruction: string, onComplete: () => void) {
     // Add execution log for memory access to B register with decimal conversion
     const subControlSignals = ['ErLb'];
     const instructionName = getInstructionName(opcode);
-    const memoryValueDecimal = parseInt(memoryValue, 2);
-    processor.executionLogs.push(`T4: [${subControlSignals.join(', ')}] — ${instructionName}: Memory[MAR] (${memoryDisplay} = ${memoryValueDecimal} decimal) → B — Loading value ${memoryValueDecimal} into B register for subtraction`);
+    const formattedMemoryValue = formatBinaryValue(memoryValue);
+    processor.executionLogs.push(`T4: [${subControlSignals.join(', ')}] — ${instructionName}: Memory[MAR] (${memoryDisplay}) → B — Loading value ${formattedMemoryValue} into B register for subtraction`);
 
     loopMultipleComponentGlows(["con", "prom", "b"]);
     processor.movingText = memoryValue;
@@ -687,10 +725,10 @@ function handleT5(instruction: string, done: () => void) {
     // Add execution log for ADD with correct control signals and decimal calculations
     const addControlSignals = ['LaEu'];
     const instructionName = getInstructionName(opcode);
-    const aValDecimal = parseInt(aVal, 2);
-    const bValDecimal = parseInt(bVal, 2);
-    const resultDecimal = parseInt(result, 2);
-    processor.executionLogs.push(`T5: [${addControlSignals.join(', ')}] — ${instructionName}: A (${aVal} = ${aValDecimal}) + B (${bVal} = ${bValDecimal}) = ${result} (${resultDecimal}) — CALCULATION: ${aValDecimal} + ${bValDecimal} = ${resultDecimal}`);
+    const formattedAVal = formatBinaryValue(aVal);
+    const formattedBVal = formatBinaryValue(bVal);
+    const formattedResult = formatBinaryValue(result);
+    processor.executionLogs.push(`T5: [${addControlSignals.join(', ')}] — ${instructionName}: A (${aVal}) + B (${bVal}) = ${result} — CALCULATION: ${formattedAVal} + ${formattedBVal} = ${formattedResult}`);
 
     loopMultipleComponentGlows(["con", "a", "b", "alu"]);
 
@@ -718,10 +756,10 @@ function handleT5(instruction: string, done: () => void) {
     // Add execution log for SUB with correct control signals and decimal calculations
     const subControlSignals = ['LaSuEu'];
     const instructionName = getInstructionName(opcode);
-    const aValDecimal = parseInt(aVal, 2);
-    const bValDecimal = parseInt(bVal, 2);
-    const resultDecimal = parseInt(result, 2);
-    processor.executionLogs.push(`T5: [${subControlSignals.join(', ')}] — ${instructionName}: A (${aVal} = ${aValDecimal}) - B (${bVal} = ${bValDecimal}) = ${result} (${resultDecimal}) — CALCULATION: ${aValDecimal} - ${bValDecimal} = ${resultDecimal}`);
+    const formattedAVal = formatBinaryValue(aVal);
+    const formattedBVal = formatBinaryValue(bVal);
+    const formattedResult = formatBinaryValue(result);
+    processor.executionLogs.push(`T5: [${subControlSignals.join(', ')}] — ${instructionName}: A (${aVal}) - B (${bVal}) = ${result} — CALCULATION: ${formattedAVal} - ${formattedBVal} = ${formattedResult}`);
 
     loopMultipleComponentGlows(["con", "a", "b", "alu"]);
 
@@ -794,7 +832,7 @@ function updateComponentValue(id: string, value: string) {
     if (id === 'out' || id === 'bd') {
       // For output register and binary display, show binary and decimal
       const decimalValue = parseInt(value || '0', 2);
-      comp.value = `${value} (#${decimalValue})`;
+      comp.value = `${value}`;
     } else {
       comp.value = value;
     }
